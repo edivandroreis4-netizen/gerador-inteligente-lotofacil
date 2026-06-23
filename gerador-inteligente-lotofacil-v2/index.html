@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Gerador Inteligente Lotofácil com análise estatística, conferidor de resultados e histórico de jogos." />
+  <title>Gerador Inteligente Lotofácil</title>
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Lotofácil" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="hero">
+    <nav class="navbar" aria-label="Navegação principal">
+      <a class="brand" href="#topo" aria-label="Ir para o início">Lotofácil Inteligente</a>
+      <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="menu-principal">☰</button>
+      <ul class="menu" id="menu-principal">
+        <li><a href="#gerador">Gerador</a></li>
+        <li><a href="#conferidor">Conferidor</a></li>
+        <li><a href="#dashboard">Dashboard</a></li>
+        <li><a href="#historico">Histórico</a></li>
+      </ul>
+    </nav>
+
+    <section class="hero-content" id="topo">
+      <div class="hero-text">
+        <span class="tag">Versão 2.2 • PWA</span>
+        <h1>Gerador Inteligente Lotofácil</h1>
+        <p>
+          Gere jogos, confira resultados, acompanhe acertos e visualize estatísticas de forma simples, responsiva e organizada.
+        </p>
+
+        <div class="hero-stats" aria-label="Estatísticas do projeto">
+          <div class="hero-stat">
+            <strong>+500</strong>
+            <span>Jogos Gerados</span>
+          </div>
+          <div class="hero-stat">
+            <strong>+100</strong>
+            <span>Análises</span>
+          </div>
+          <div class="hero-stat">
+            <strong>Dashboard</strong>
+            <span>Inteligente</span>
+          </div>
+        </div>
+
+        <div class="hero-actions">
+          <a class="btn primary" href="#gerador">Gerar jogo</a>
+          <a class="btn secondary" href="#conferidor">🔎 Conferir Resultado</a>
+          <button class="btn install" type="button" id="btn-instalar" hidden>📲 Instalar app</button>
+        </div>
+        <p class="disclaimer">Este projeto usa estatística e geração aleatória. Ele não promete previsão de resultados.</p>
+      </div>
+
+      <aside class="profile-card" aria-label="Perfil do desenvolvedor">
+        <img src="assets/img/minha-foto.jpg" alt="Foto de Edivandro Lima" />
+        <h2>Edivandro Lima</h2>
+        <p>Desenvolvedor Full Stack em formação</p>
+      </aside>
+    </section>
+  </header>
+
+  <main>
+    <section class="section" id="gerador" aria-labelledby="titulo-gerador">
+      <div class="section-heading">
+        <span class="tag">Gerador</span>
+        <h2 id="titulo-gerador">Gerar novo jogo</h2>
+        <p>Crie uma combinação com 15 números entre 1 e 25.</p>
+      </div>
+
+      <div class="panel generator-panel">
+        <div class="game-output" id="jogo-gerado" aria-live="polite">
+          <span class="empty-state">Clique em “Gerar jogo” para começar.</span>
+        </div>
+        <div class="actions">
+          <button class="btn primary" type="button" id="btn-gerar">Gerar jogo</button>
+          <button class="btn secondary" type="button" id="btn-salvar" disabled>Salvar jogo</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="conferidor" aria-labelledby="titulo-conferidor">
+      <div class="section-heading">
+        <span class="tag">Conferidor</span>
+        <h2 id="titulo-conferidor">Conferir acertos</h2>
+        <p>Digite o resultado oficial com 15 números separados por espaço, vírgula ou hífen.</p>
+      </div>
+
+      <div class="panel checker-grid">
+        <form id="form-conferir" class="checker-form">
+          <label for="resultado-oficial">Resultado oficial</label>
+          <textarea id="resultado-oficial" rows="4" placeholder="Ex: 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15"></textarea>
+          <button class="btn primary" type="submit">Conferir último jogo</button>
+        </form>
+
+        <div class="result-box" id="resultado-conferencia" aria-live="polite">
+          <h3>Resultado da conferência</h3>
+          <p>Depois de gerar um jogo, informe o resultado oficial para ver seus acertos.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="dashboard" aria-labelledby="titulo-dashboard">
+      <div class="section-heading">
+        <span class="tag">Dashboard</span>
+        <h2 id="titulo-dashboard">Resumo dos jogos</h2>
+      </div>
+
+      <div class="cards">
+        <article class="card"><span>Total de jogos</span><strong id="card-total">0</strong></article>
+        <article class="card"><span>Melhor resultado</span><strong id="card-melhor">0</strong></article>
+        <article class="card"><span>Último jogo</span><strong id="card-ultimo">--</strong></article>
+        <article class="card"><span>Jogos premiáveis</span><strong id="card-premiaveis">0</strong></article>
+      </div>
+
+      <div class="charts-grid">
+        <article class="chart-card">
+          <h3>Pares x Ímpares do último jogo</h3>
+          <canvas id="chart-pares-impares" aria-label="Gráfico de pares e ímpares"></canvas>
+        </article>
+        <article class="chart-card">
+          <h3>Histórico de acertos</h3>
+          <canvas id="chart-acertos" aria-label="Gráfico de histórico de acertos"></canvas>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="historico" aria-labelledby="titulo-historico">
+      <div class="section-heading">
+        <span class="tag">Histórico</span>
+        <h2 id="titulo-historico">Jogos salvos</h2>
+      </div>
+
+      <div class="panel">
+        <div class="history-actions">
+          <button class="btn danger" type="button" id="btn-limpar">Limpar histórico</button>
+        </div>
+        <div class="history-list" id="lista-historico"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p><strong>Desenvolvido por Edivandro Lima</strong></p>
+    <p>© 2026 - Gerador Inteligente Lotofácil</p>
+  </footer>
+</body>
+</html>
