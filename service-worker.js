@@ -1,4 +1,4 @@
-const CACHE_NAME = "lotofacil-inteligente-v2.3.2";
+const CACHE_NAME = "lotofacil-inteligente-v2.3.2-api2";
 
 const APP_SHELL = [
   "./",

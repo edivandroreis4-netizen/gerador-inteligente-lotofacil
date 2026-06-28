@@ -59,3 +59,7 @@ O sistema não prevê resultados nem aumenta a probabilidade de premiação. As 
 - concursos ainda não apurados abrem automaticamente a aba **Próximo concurso**;
 - o app diferencia concurso futuro de falha real da API;
 - pesquisas sem número continuam carregando o último concurso apurado.
+
+## Ajuste da integração oficial
+
+A função `api/lotofacil.js` agora consulta primeiro o último concurso apurado e padroniza três estados: `apurado`, `futuro` e `indisponivel`. Dessa forma, um concurso ainda não sorteado abre a aba **Próximo concurso**, enquanto uma falha real da fonte exibe a alternativa de conferência manual.
