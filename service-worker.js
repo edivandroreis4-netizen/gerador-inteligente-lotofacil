@@ -1,4 +1,4 @@
-const CACHE_NAME = "lotofacil-inteligente-v2-2";
+const CACHE_NAME = "lotofacil-inteligente-v2.3.2";
 
 const APP_SHELL = [
   "./",
@@ -10,6 +10,7 @@ const APP_SHELL = [
   "./js/services/gerador.service.js",
   "./js/services/estatisticas.service.js",
   "./js/services/storage.service.js",
+  "./js/services/lotofacil-api.service.js",
   "./js/validators/aposta.validator.js",
   "./js/ui/alerts.ui.js",
   "./js/ui/charts.ui.js",
@@ -37,6 +38,9 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith("/api/")) return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {

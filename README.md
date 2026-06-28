@@ -1,41 +1,54 @@
-# Gerador Inteligente Lotofácil - Versão 2.2 PWA
+# Gerador Inteligente Lotofácil — v2.3.2
 
-Aplicação web responsiva para gerar jogos, conferir resultados, salvar histórico e visualizar estatísticas da Lotofácil.
+Aplicação web PWA desenvolvida com HTML, CSS e JavaScript modular para gerar e personalizar jogos, conferir resultados, acompanhar números em atraso e controlar gastos e prêmios.
 
-## Funcionalidades
+## Principais melhorias desta versão
 
-- Gerador de jogo com 15 números entre 1 e 25
-- Conferidor de acertos
-- Mensagens para 11, 12, 13, 14 e 15 acertos
-- Histórico salvo no navegador com `localStorage`
-- Dashboard com cards e gráficos
-- Gráficos com Chart.js
-- Alertas com SweetAlert2
-- Foto e identificação do desenvolvedor
-- Layout responsivo para celular, tablet e desktop
-- PWA pronto para instalar como aplicativo
+- Dashboard profissional com menu lateral no desktop.
+- Card roxo com abas **Último resultado** e **Próximo concurso**.
+- Dados reais nos cards de resumo, sem contadores fictícios.
+- Seleção visual das 15 dezenas no gerador e no conferidor.
+- Busca oficial com tratamento de falhas e fontes alternativas.
+- Aviso destacado quando os atrasos usam base demonstrativa.
+- Controle financeiro persistente em `localStorage`.
+- Gráfico responsivo de gastos x prêmios.
+- Histórico adaptado para celular.
+- Botão de instalação exibido somente quando o PWA pode ser instalado.
 
-## PWA
+## Teste da API oficial
 
-Esta versão inclui:
+A rota `/api/lotofacil` é uma função serverless da Vercel. Pelo Live Server, a busca oficial não funciona porque não existe um servidor para executar a pasta `api`. Para testar a integração, publique na Vercel ou use `vercel dev`.
 
-- `manifest.json`
-- `service-worker.js`
-- ícones em `assets/icons/`
-- botão de instalação quando o navegador permitir
-- cache básico dos arquivos principais
+## Tecnologias
 
-Depois de publicar na Vercel ou GitHub Pages, abra o projeto no celular e use:
+- HTML5
+- CSS3
+- JavaScript ES6 Modules
+- Chart.js
+- SweetAlert2
+- LocalStorage
+- PWA / Service Worker
+- Vercel Functions
 
-- Android/Chrome: **Adicionar à tela inicial**
-- iPhone/Safari: **Compartilhar > Adicionar à Tela de Início**
+## Observação
 
-## Observação importante
+O sistema não prevê resultados nem aumenta a probabilidade de premiação. As análises são históricas e organizacionais.
 
-O projeto usa estatística e geração aleatória. Ele não promete previsão de resultados da loteria.
+**Desenvolvido por Edivandro Lima**
 
-## Desenvolvedor
 
-Desenvolvido por **Edivandro Lima**.
+## Ajustes mobile incluídos
 
-© 2026 - Gerador Inteligente Lotofácil
+- gráfico financeiro com altura reduzida em telas pequenas;
+- resumo financeiro organizado em duas colunas;
+- histórico exibido como cartões individuais;
+- espaçamentos mais compactos;
+- menu lateral com botão “Menu/Fechar”, botão interno de fechamento, fundo de bloqueio e suporte à tecla Escape.
+
+
+## Ajustes finais de responsividade
+
+- Cabeçalho mobile reorganizado em duas linhas.
+- Botão de busca oficial em largura total no celular.
+- Concurso em destaque nos cards do histórico.
+- Data e quantidade de acertos com hierarquia visual melhor.
