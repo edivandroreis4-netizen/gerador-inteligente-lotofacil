@@ -17,6 +17,14 @@ export async function buscarResultadoLotofacil(concurso = "") {
 
   const dados = await resposta.json();
   if (!resposta.ok) throw new Error(dados?.erro || "Não foi possível buscar o resultado oficial.");
-  if (!Array.isArray(dados.dezenas) || dados.dezenas.length !== 15) throw new Error("O resultado recebido não contém 15 dezenas válidas.");
+
+  if (dados?.tipo === "proximo_concurso") {
+    return dados;
+  }
+
+  if (!Array.isArray(dados.dezenas) || dados.dezenas.length !== 15) {
+    throw new Error("O resultado recebido não contém 15 dezenas válidas.");
+  }
+
   return dados;
 }

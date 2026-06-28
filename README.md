@@ -52,3 +52,10 @@ O sistema não prevê resultados nem aumenta a probabilidade de premiação. As 
 - Botão de busca oficial em largura total no celular.
 - Concurso em destaque nos cards do histórico.
 - Data e quantidade de acertos com hierarquia visual melhor.
+
+
+## Ajuste de concurso futuro
+
+- concursos ainda não apurados abrem automaticamente a aba **Próximo concurso**;
+- o app diferencia concurso futuro de falha real da API;
+- pesquisas sem número continuam carregando o último concurso apurado.

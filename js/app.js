@@ -252,11 +252,34 @@ async function buscarEConferirResultadoOficial() {
   elementos.statusResultadoOficial.textContent = "Consultando a fonte oficial...";
   try {
     const resultado = await buscarResultadoLotofacil(obterConcursoDigitado());
+
+    if (resultado.tipo === "proximo_concurso") {
+      const ultimo = resultado.ultimoResultado;
+      if (ultimo?.dezenas?.length === 15) atualizarCardConcurso(ultimo);
+
+      elementos.numeroConcurso.value = resultado.proximoConcurso || resultado.concursoSolicitado || "";
+      elementos.proximoConcursoNumero.textContent = resultado.proximoConcurso || resultado.concursoSolicitado || "--";
+      elementos.premioEstimado.textContent = formatarMoeda(resultado.estimativaProximoConcurso || 0);
+      elementos.proximoConcursoData.textContent = resultado.dataProximoConcurso
+        ? `${formatarData(resultado.dataProximoConcurso)}${resultado.horarioProximoConcurso ? ` às ${resultado.horarioProximoConcurso}` : ""}`
+        : "Data ainda não divulgada";
+
+      ativarAbaConcurso("proximo");
+      elementos.statusResultadoOficial.className = "official-status success";
+      elementos.statusResultadoOficial.textContent = `Concurso ${resultado.proximoConcurso || resultado.concursoSolicitado} ainda não apurado. Exibindo os dados do próximo sorteio.`;
+      alertaSucesso(
+        "Concurso ainda não apurado",
+        `O concurso ${resultado.proximoConcurso || resultado.concursoSolicitado} é futuro. A aba Próximo concurso foi aberta automaticamente.`
+      );
+      return;
+    }
+
     elementos.numeroConcurso.value = resultado.concurso;
     resultadoSelecionado = [...resultado.dezenas];
     renderizarResultadoManual();
     salvarResultadoOficial(resultado.concurso, resultado.dezenas);
     atualizarCardConcurso(resultado);
+    ativarAbaConcurso("ultimo");
     elementos.statusResultadoOficial.className = "official-status success";
     elementos.statusResultadoOficial.textContent = `Concurso ${resultado.concurso} carregado com sucesso.`;
     if (buscarHistorico()[0]?.jogo?.length || jogoAtual.length) processarConferencia(resultado.dezenas, String(resultado.concurso));
@@ -270,15 +293,24 @@ async function buscarEConferirResultadoOficial() {
   }
 }
 
+function ativarAbaConcurso(nomeAba) {
+  document.querySelectorAll(".contest-tab").forEach((botao) => {
+    const ativo = botao.dataset.tab === nomeAba;
+    botao.classList.toggle("active", ativo);
+    botao.setAttribute("aria-selected", String(ativo));
+  });
+
+  document.querySelectorAll(".contest-panel").forEach((painel) => {
+    const ativo = painel.id === `tab-${nomeAba}`;
+    painel.hidden = !ativo;
+    painel.classList.toggle("active", ativo);
+  });
+}
+
 function configurarTabsConcurso() {
-  document.querySelectorAll(".contest-tab").forEach((botao) => botao.addEventListener("click", () => {
-    document.querySelectorAll(".contest-tab").forEach((item) => item.classList.toggle("active", item === botao));
-    document.querySelectorAll(".contest-panel").forEach((painel) => {
-      const ativo = painel.id === `tab-${botao.dataset.tab}`;
-      painel.hidden = !ativo;
-      painel.classList.toggle("active", ativo);
-    });
-  }));
+  document.querySelectorAll(".contest-tab").forEach((botao) => {
+    botao.addEventListener("click", () => ativarAbaConcurso(botao.dataset.tab));
+  });
 }
 
 function configurarMenu() {

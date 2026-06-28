@@ -33,7 +33,23 @@ function normalizarResultado(dados) {
   };
 }
 
-async function consultarFonte(base, concurso) {
+function criarRespostaProximoConcurso(ultimoResultado, concursoSolicitado) {
+  const proximoConcurso = ultimoResultado.proximoConcurso || Number(concursoSolicitado);
+  return {
+    tipo: "proximo_concurso",
+    concursoSolicitado: Number(concursoSolicitado),
+    proximoConcurso,
+    dataProximoConcurso: ultimoResultado.dataProximoConcurso,
+    horarioProximoConcurso: ultimoResultado.horarioProximoConcurso,
+    estimativaProximoConcurso: ultimoResultado.estimativaProximoConcurso,
+    valorApostaMinima: 3.5,
+    ultimoResultado,
+    fonte: ultimoResultado.fonte,
+    consultadoEm: new Date().toISOString()
+  };
+}
+
+async function consultarFonte(base, concurso = "") {
   const url = concurso ? `${base}/${concurso}` : base;
   const resposta = await fetch(url, {
     headers: {
@@ -51,6 +67,19 @@ async function consultarFonte(base, concurso) {
   return normalizarResultado(dados);
 }
 
+async function consultarPrimeiraFonteDisponivel(concurso = "") {
+  let ultimoErro;
+  for (const fonte of FONTES) {
+    try {
+      return await consultarFonte(fonte, concurso);
+    } catch (erro) {
+      ultimoErro = erro;
+      console.warn(`Falha na fonte ${fonte}:`, erro.message);
+    }
+  }
+  throw ultimoErro || new Error("Fontes indisponíveis");
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=900");
   res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -62,22 +91,43 @@ module.exports = async function handler(req, res) {
 
   const concursoBruto = Array.isArray(req.query?.concurso) ? req.query.concurso[0] : req.query?.concurso;
   const concurso = concursoBruto ? String(concursoBruto).replace(/\D/g, "") : "";
-  let ultimoErro;
 
-  for (const fonte of FONTES) {
-    try {
-      const resultado = await consultarFonte(fonte, concurso);
-      return res.status(200).json(resultado);
-    } catch (erro) {
-      ultimoErro = erro;
-      console.warn(`Falha na fonte ${fonte}:`, erro.message);
+  try {
+    if (!concurso) {
+      const ultimoResultado = await consultarPrimeiraFonteDisponivel();
+      return res.status(200).json(ultimoResultado);
     }
-  }
 
-  return res.status(503).json({
-    erro: concurso
-      ? `O concurso ${concurso} não pôde ser consultado agora.`
-      : "A consulta oficial está temporariamente indisponível.",
-    detalhe: process.env.NODE_ENV === "development" ? ultimoErro?.message : undefined
-  });
+    const solicitado = Number(concurso);
+
+    try {
+      const resultadoSolicitado = await consultarPrimeiraFonteDisponivel(concurso);
+
+      if (resultadoSolicitado.concurso === solicitado) {
+        return res.status(200).json(resultadoSolicitado);
+      }
+
+      if (solicitado > resultadoSolicitado.concurso) {
+        return res.status(200).json(criarRespostaProximoConcurso(resultadoSolicitado, solicitado));
+      }
+    } catch (erroConsultaDireta) {
+      console.warn(`Consulta direta do concurso ${concurso} falhou:`, erroConsultaDireta.message);
+    }
+
+    const ultimoResultado = await consultarPrimeiraFonteDisponivel();
+
+    if (solicitado > ultimoResultado.concurso) {
+      return res.status(200).json(criarRespostaProximoConcurso(ultimoResultado, solicitado));
+    }
+
+    return res.status(404).json({
+      erro: `O concurso ${concurso} não foi encontrado na fonte oficial. Verifique o número e tente novamente.`
+    });
+  } catch (erro) {
+    console.error("Falha ao consultar a Lotofácil:", erro.message);
+    return res.status(503).json({
+      erro: "A consulta oficial está temporariamente indisponível. Tente novamente em alguns minutos.",
+      detalhe: process.env.NODE_ENV === "development" ? erro.message : undefined
+    });
+  }
 };
