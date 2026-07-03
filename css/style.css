@@ -71,3 +71,7 @@
   .official-summary span{font-size:.68rem}.official-summary strong{font-size:.95rem}
   .history-contest{font-size:.9rem}.history-date{font-size:.68rem}.history-hits{font-size:.78rem}
 }
+
+/* Ajustes v2.3.3: edição de jogos e fluxo mobile */
+.history-actions{display:flex;justify-content:flex-end;margin-top:10px}.edit-game-btn{padding:8px 12px;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe}.edit-game-btn:hover{background:#e0e7ff;transform:translateY(-1px)}.edit-status{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;font-size:.82rem;font-weight:700}.btn.secondary{background:#f8fafc;color:#334155;border:1px solid #cbd5e1}
+@media(max-width:900px){.topbar #btn-buscar-topo{display:none}.history-actions .btn{width:100%}}

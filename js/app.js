@@ -10,6 +10,7 @@ import {
 } from "./services/estatisticas.service.js";
 import {
   adicionarJogo,
+  atualizarJogoPorId,
   atualizarUltimoJogo,
   buscarHistorico,
   limparHistorico,
@@ -26,10 +27,11 @@ let jogoAtual = [];
 let resultadoSelecionado = [];
 let eventoInstalacaoPendente = null;
 let ultimoResultadoCarregado = null;
+let jogoEmEdicaoId = null;
 
 const $ = (id) => document.getElementById(id);
 const elementos = {
-  btnGerar: $("btn-gerar"), btnSalvar: $("btn-salvar"), btnLimpar: $("btn-limpar"),
+  btnGerar: $("btn-gerar"), btnSalvar: $("btn-salvar"), btnCancelarEdicao: $("btn-cancelar-edicao"), editStatus: $("edit-status"), btnLimpar: $("btn-limpar"),
   btnBuscarOficial: $("btn-buscar-oficial"), btnBuscarTopo: $("btn-buscar-topo"), btnAtualizarConcurso: $("btn-atualizar-concurso"),
   statusResultadoOficial: $("status-resultado-oficial"), jogoGerado: $("jogo-gerado"), seletorNumeros: $("seletor-numeros"),
   seletorResultado: $("seletor-resultado"), contadorSelecionados: $("contador-selecionados"), contadorResultado: $("contador-resultado"),
@@ -155,6 +157,7 @@ function renderizarHistorico() {
       <span class="status-badge${status === "Conferido" ? " checked" : ""}">${status}</span>
       <div class="history-balls">${criarBolas(item.jogo)}</div>
       <div class="history-financial"><span>Aposta: <strong>${formatarMoeda(valor)}</strong></span><span>Prêmio: <strong>${formatarMoeda(premio)}</strong></span><span class="${saldo > 0 ? "positive" : saldo < 0 ? "negative" : "neutral"}">Resultado: <strong>${saldo > 0 ? "+" : ""}${formatarMoeda(saldo)}</strong></span></div>
+      <div class="history-actions"><button class="btn edit-game-btn" type="button" data-edit-game="${item.id}" aria-label="Editar jogo do concurso ${item.concurso || "sem número"}">✏️ Editar jogo</button></div>
     </article>`;
   }).join("");
 }
@@ -218,12 +221,64 @@ function iniciarGerador() {
   atualizarDashboard();
 }
 
+function sairDoModoEdicao() {
+  jogoEmEdicaoId = null;
+  elementos.btnSalvar.textContent = "Salvar jogo";
+  elementos.btnCancelarEdicao.hidden = true;
+  elementos.editStatus.hidden = true;
+  elementos.editStatus.textContent = "";
+}
+
+function iniciarEdicaoJogo(id) {
+  const item = buscarHistorico().find((registro) => registro.id === id);
+  if (!item) return alertaErro("Jogo não encontrado", "Não foi possível localizar este registro.");
+
+  jogoEmEdicaoId = id;
+  jogoAtual = [...item.jogo].sort((a, b) => a - b);
+  elementos.numeroConcurso.value = item.concurso || "";
+  elementos.valorAposta.value = Number(item.valorApostado || 0).toFixed(2).replace(".", ",");
+  elementos.premioRecebido.value = Number(item.premioRecebido || 0).toFixed(2).replace(".", ",");
+  elementos.btnSalvar.textContent = "Atualizar jogo";
+  elementos.btnCancelarEdicao.hidden = false;
+  elementos.editStatus.hidden = false;
+  elementos.editStatus.textContent = `Editando o concurso ${item.concurso || "sem número"}. Altere as dezenas, o concurso ou o valor e clique em Atualizar jogo.`;
+  renderizarJogo();
+  renderizarQualidade();
+  document.querySelector("#gerador")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function cancelarEdicao() {
+  sairDoModoEdicao();
+  jogoAtual = [];
+  elementos.numeroConcurso.value = "";
+  elementos.valorAposta.value = "3,50";
+  elementos.premioRecebido.value = "0,00";
+  renderizarJogo();
+  renderizarQualidade();
+}
+
 function salvarJogoAtual() {
   if (jogoAtual.length !== 15) return alertaErro("Jogo incompleto", "Selecione exatamente 15 números.");
   const valor = converterMoedaParaNumero(elementos.valorAposta.value);
   if (!Number.isFinite(valor) || valor <= 0) return alertaErro("Valor inválido", "Informe um valor maior que zero.");
-  adicionarJogo(jogoAtual, obterConcursoDigitado(), valor);
-  alertaSucesso("Jogo salvo", "A combinação e os dados financeiros foram salvos neste navegador.");
+
+  if (jogoEmEdicaoId) {
+    const anterior = buscarHistorico().find((item) => item.id === jogoEmEdicaoId);
+    if (!anterior) return alertaErro("Jogo não encontrado", "O registro que estava sendo editado não existe mais.");
+    const jogoMudou = JSON.stringify([...anterior.jogo].sort((a,b)=>a-b)) !== JSON.stringify([...jogoAtual].sort((a,b)=>a-b));
+    atualizarJogoPorId(jogoEmEdicaoId, {
+      jogo: [...jogoAtual],
+      concurso: obterConcursoDigitado() || null,
+      valorApostado: valor,
+      ...(jogoMudou ? { acertos: null, resultadoOficial: [], premioRecebido: 0, status: "Não apurado" } : {})
+    });
+    alertaSucesso("Jogo atualizado", jogoMudou ? "As alterações foram salvas e a conferência anterior foi reiniciada." : "As alterações foram salvas neste navegador.");
+    sairDoModoEdicao();
+  } else {
+    adicionarJogo(jogoAtual, obterConcursoDigitado(), valor);
+    alertaSucesso("Jogo salvo", "A combinação e os dados financeiros foram salvos neste navegador.");
+  }
+
   renderizarHistorico();
   atualizarDashboard();
 }
@@ -281,9 +336,20 @@ async function buscarEConferirResultadoOficial() {
     atualizarCardConcurso(resultado);
     ativarAbaConcurso("ultimo");
     elementos.statusResultadoOficial.className = "official-status success";
-    elementos.statusResultadoOficial.textContent = `Concurso ${resultado.concurso} carregado com sucesso.`;
-    if (buscarHistorico()[0]?.jogo?.length || jogoAtual.length) processarConferencia(resultado.dezenas, String(resultado.concurso));
-    else alertaSucesso("Resultado oficial carregado", "Agora gere ou salve um jogo para conferir.");
+    const origem = resultado.origemCache
+      ? "carregado do último cache válido"
+      : `carregado pela fonte ${resultado.fonte || "alternativa"}`;
+    elementos.statusResultadoOficial.textContent = `Concurso ${resultado.concurso} ${origem}.`;
+    if (buscarHistorico()[0]?.jogo?.length || jogoAtual.length) {
+      processarConferencia(resultado.dezenas, String(resultado.concurso));
+    } else {
+      alertaSucesso(
+        resultado.origemCache ? "Resultado recuperado do cache" : "Resultado carregado",
+        resultado.origemCache
+          ? "Foi usado o último resultado válido salvo. Confira a data e o concurso antes de prosseguir."
+          : "Agora gere ou salve um jogo para conferir."
+      );
+    }
   } catch (erro) {
     elementos.statusResultadoOficial.className = "official-status error";
     elementos.statusResultadoOficial.textContent = erro.message;
@@ -358,12 +424,14 @@ async function apagarHistorico() {
 function iniciarApp() {
   elementos.btnGerar.addEventListener("click", iniciarGerador);
   elementos.btnSalvar.addEventListener("click", salvarJogoAtual);
+  elementos.btnCancelarEdicao.addEventListener("click", cancelarEdicao);
   elementos.btnLimpar.addEventListener("click", apagarHistorico);
   elementos.formConferir.addEventListener("submit", (event) => { event.preventDefault(); processarConferencia(resultadoSelecionado); });
   [elementos.btnBuscarOficial, elementos.btnBuscarTopo, elementos.btnAtualizarConcurso].forEach((botao) => botao?.addEventListener("click", buscarEConferirResultadoOficial));
   elementos.btnLimparResultado.addEventListener("click", () => { resultadoSelecionado = []; renderizarResultadoManual(); });
   elementos.seletorNumeros.addEventListener("click", (event) => { const botao = event.target.closest("[data-number]"); if (botao) alternarNumeroJogo(Number(botao.dataset.number)); });
   elementos.seletorResultado.addEventListener("click", (event) => { const botao = event.target.closest("[data-result-number]"); if (botao) alternarNumeroResultado(Number(botao.dataset.resultNumber)); });
+  elementos.listaHistorico.addEventListener("click", (event) => { const botao = event.target.closest("[data-edit-game]"); if (botao) iniciarEdicaoJogo(botao.dataset.editGame); });
   configurarMenu(); configurarTabsConcurso(); configurarPWA();
   renderizarJogo(); renderizarResultadoManual(); renderizarQualidade(); renderizarHistorico(); atualizarDashboard();
 }

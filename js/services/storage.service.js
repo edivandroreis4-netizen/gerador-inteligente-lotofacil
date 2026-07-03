@@ -28,6 +28,22 @@ export function adicionarJogo(jogo, concurso = "", valorApostado = 0) {
   return novoRegistro;
 }
 
+export function atualizarJogoPorId(id, dadosAtualizados) {
+  const historico = buscarHistorico();
+  const indice = historico.findIndex((item) => item.id === id);
+  if (indice < 0) return null;
+
+  historico[indice] = {
+    ...historico[indice],
+    ...dadosAtualizados,
+    id: historico[indice].id,
+    dataAtualizacao: new Date().toISOString()
+  };
+
+  salvarHistorico(historico);
+  return historico[indice];
+}
+
 export function atualizarUltimoJogo(dadosAtualizados) {
   const historico = buscarHistorico();
   if (!historico.length) return [];

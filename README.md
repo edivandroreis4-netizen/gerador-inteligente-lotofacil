@@ -1,4 +1,4 @@
-# Gerador Inteligente Lotofácil — v2.3.2
+# Gerador Inteligente Lotofácil — v2.3.3
 
 Aplicação web PWA desenvolvida com HTML, CSS e JavaScript modular para gerar e personalizar jogos, conferir resultados, acompanhar números em atraso e controlar gastos e prêmios.
 
@@ -63,3 +63,24 @@ O sistema não prevê resultados nem aumenta a probabilidade de premiação. As 
 ## Ajuste da integração oficial
 
 A função `api/lotofacil.js` agora consulta primeiro o último concurso apurado e padroniza três estados: `apurado`, `futuro` e `indisponivel`. Dessa forma, um concurso ainda não sorteado abre a aba **Próximo concurso**, enquanto uma falha real da fonte exibe a alternativa de conferência manual.
+
+
+## Atualização 2.3.3
+- Botão Editar jogo em cada registro salvo.
+- Edição das dezenas, número do concurso e valor da aposta.
+- A conferência anterior é reiniciada quando as dezenas são alteradas, evitando dados inconsistentes.
+- Botão Cancelar edição.
+- No celular, a busca duplicada do cabeçalho foi ocultada; permanece a busca dentro do conferidor.
+
+
+## Integração resiliente de resultados — v2.3.3
+
+- removidos `servicebus2` e `servicebus3` como fontes principais;
+- fonte principal alternativa: API pública `api.guidi.dev.br`;
+- contingência por base JSON pública hospedada no GitHub;
+- cache em memória na função serverless e cache persistente no navegador;
+- respostas da API sempre padronizadas em JSON;
+- conferência manual preservada quando todas as fontes estão indisponíveis;
+- URLs construídas com a API WHATWG `new URL()`, sem uso de `url.parse()` no código do projeto.
+
+> Observação: as fontes alternativas são serviços de terceiros e podem ficar indisponíveis ou apresentar atraso. O aplicativo informa a origem dos dados e mantém o modo manual como contingência.
