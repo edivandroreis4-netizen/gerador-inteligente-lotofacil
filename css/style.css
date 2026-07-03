@@ -75,3 +75,193 @@
 /* Ajustes v2.3.3: edição de jogos e fluxo mobile */
 .history-actions{display:flex;justify-content:flex-end;margin-top:10px}.edit-game-btn{padding:8px 12px;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe}.edit-game-btn:hover{background:#e0e7ff;transform:translateY(-1px)}.edit-status{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;font-size:.82rem;font-weight:700}.btn.secondary{background:#f8fafc;color:#334155;border:1px solid #cbd5e1}
 @media(max-width:900px){.topbar #btn-buscar-topo{display:none}.history-actions .btn{width:100%}}
+
+
+/* Identidade mobile: imagem do projeto no topo e autoria no rodapé */
+.project-brand-image{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  object-fit:cover;
+  box-shadow:0 8px 22px rgba(124,58,237,.3);
+}
+.footer-developer{
+  display:flex;
+  align-items:center;
+  gap:11px;
+}
+.footer-developer img{
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  object-fit:cover;
+  border:2px solid #7c3aed;
+  box-shadow:0 6px 16px rgba(15,23,42,.14);
+}
+.footer-developer span,
+.footer-developer small{
+  display:block;
+  color:var(--muted);
+}
+.footer-developer strong{
+  display:block;
+  color:#0f172a;
+  margin:2px 0;
+}
+.footer-developer small{font-size:.72rem}
+.footer-copyright{margin-left:auto}
+
+@media(max-width:900px){
+  .sidebar .developer-mini{display:none}
+  .brand-block{
+    grid-template-columns:54px minmax(0,1fr) auto;
+    padding:0 4px 22px;
+  }
+  .project-brand-image{
+    width:54px;
+    height:54px;
+    border-radius:16px;
+  }
+  .brand-block strong{font-size:1.42rem}
+  .brand-block span{font-size:.74rem}
+  .footer{
+    align-items:center;
+    text-align:left;
+    gap:12px;
+    padding:18px 14px calc(18px + env(safe-area-inset-bottom));
+    background:#f8fafc;
+    border-top:1px solid var(--border);
+  }
+  .footer-developer{width:100%}
+  .footer-developer img{width:52px;height:52px}
+  .footer-copyright{
+    width:100%;
+    margin-left:0;
+    padding-top:10px;
+    border-top:1px solid var(--border);
+    text-align:center;
+  }
+}
+
+@media(max-width:560px){
+  .brand-block{grid-template-columns:50px minmax(0,1fr) auto;gap:9px}
+  .project-brand-image{width:50px;height:50px}
+  .brand-block strong{font-size:1.3rem}
+  .footer-developer strong{font-size:.94rem}
+  .footer-developer small{font-size:.68rem}
+}
+
+/* v2.3.3 — identidade mais discreta no desktop e menu superior no mobile */
+/* A autoria permanece somente no rodapé para evitar repetição visual. */
+.sidebar .developer-mini,
+.top-profile{
+  display:none !important;
+}
+
+/* Mantém o botão de instalação no rodapé do menu desktop. */
+.sidebar-footer{
+  margin-top:auto;
+}
+
+@media(max-width:900px){
+  /* O antigo menu lateral vira um painel superior. */
+  .sidebar{
+    inset:0 0 auto 0;
+    width:100%;
+    max-width:none;
+    height:auto;
+    max-height:min(92dvh,760px);
+    padding:18px 16px calc(18px + env(safe-area-inset-bottom));
+    transform:translateY(-110%);
+    transition:transform .28s ease;
+    border-radius:0 0 22px 22px;
+    box-shadow:0 18px 48px rgba(2,12,28,.36);
+    overflow-y:auto;
+  }
+
+  .sidebar.open{
+    transform:translateY(0);
+  }
+
+  .sidebar-close{
+    top:14px;
+    right:14px;
+  }
+
+  .brand-block{
+    grid-template-columns:52px minmax(0,1fr) auto;
+    padding:2px 48px 16px 2px;
+    border-bottom:1px solid rgba(255,255,255,.12);
+    margin-bottom:12px;
+  }
+
+  .project-brand-image{
+    width:52px;
+    height:52px;
+  }
+
+  .sidebar-nav{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+
+  .sidebar-nav a{
+    min-height:52px;
+    padding:11px 12px;
+    justify-content:flex-start;
+  }
+
+  .sidebar-footer{
+    margin-top:14px;
+    grid-template-columns:1fr;
+  }
+
+  .install-card,
+  .installed-card{
+    width:100%;
+  }
+
+  .menu-backdrop:not([hidden]){
+    background:rgba(2,8,23,.5);
+  }
+
+  .menu-toggle{
+    min-width:118px;
+  }
+}
+
+@media(max-width:560px){
+  .sidebar{
+    max-height:94dvh;
+    padding:14px 12px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .brand-block{
+    grid-template-columns:46px minmax(0,1fr) auto;
+    padding-right:44px;
+  }
+
+  .project-brand-image{
+    width:46px;
+    height:46px;
+  }
+
+  .brand-block strong{
+    font-size:1.18rem;
+  }
+
+  .sidebar-nav{
+    grid-template-columns:1fr;
+    gap:6px;
+  }
+
+  .sidebar-nav a{
+    min-height:46px;
+    padding:10px 12px;
+  }
+
+  .menu-toggle{
+    min-width:108px;
+    font-size:.8rem;
+  }
+}

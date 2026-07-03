@@ -84,3 +84,28 @@ A função `api/lotofacil.js` agora consulta primeiro o último concurso apurado
 - URLs construídas com a API WHATWG `new URL()`, sem uso de `url.parse()` no código do projeto.
 
 > Observação: as fontes alternativas são serviços de terceiros e podem ficar indisponíveis ou apresentar atraso. O aplicativo informa a origem dos dados e mantém o modo manual como contingência.
+
+## Correção de atualidade dos resultados
+
+- todas as fontes são consultadas e o maior concurso encontrado é priorizado;
+- resultados muito antigos são rejeitados automaticamente;
+- a base `loteria.json` não é mais aceita como “último resultado” quando estiver atrasada;
+- o cache local expira em 6 horas e nunca substitui um concurso mais novo por um antigo;
+- caches da integração anterior são ignorados e removidos;
+- quando todas as fontes estiverem atrasadas, o aplicativo preserva a conferência manual em vez de carregar dezenas incorretas;
+- a validação usa uma referência que avança automaticamente de segunda a sábado, evitando um número mínimo fixo permanente.
+
+
+## Ajuste de identidade no celular
+
+- Ícone do projeto destacado no topo do menu mobile.
+- Cartão do desenvolvedor removido do menu mobile.
+- Foto e autoria de Edivandro Lima posicionadas no rodapé.
+- Layout desktop preservado.
+
+## Ajuste de identidade e navegação mobile
+
+- autoria pessoal concentrada no rodapé;
+- foto removida do cabeçalho e do menu no desktop;
+- menu mobile convertido de lateral para painel superior;
+- navegação superior responsiva em duas colunas e uma coluna em telas menores.

@@ -1,4 +1,33 @@
-const CACHE_KEY = "gerador-inteligente-lotofacil:ultimo-resultado-valido:v1";
+const CACHE_KEY = "gerador-inteligente-lotofacil:ultimo-resultado-valido:v2";
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const CONCURSO_REFERENCIA = 3724;
+const DATA_REFERENCIA_UTC = Date.UTC(2026, 6, 2);
+const TOLERANCIA_CONCURSOS = 2;
+
+function contarDiasDeSorteioDesdeReferencia() {
+  const hoje = new Date();
+  const fim = Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate());
+  if (fim <= DATA_REFERENCIA_UTC) return 0;
+
+  let quantidade = 0;
+  for (let dia = DATA_REFERENCIA_UTC + 86400000; dia <= fim; dia += 86400000) {
+    if (new Date(dia).getUTCDay() !== 0) quantidade += 1;
+  }
+  return quantidade;
+}
+
+function concursoMinimoEsperado() {
+  return CONCURSO_REFERENCIA + contarDiasDeSorteioDesdeReferencia() - TOLERANCIA_CONCURSOS;
+}
+
+function cacheValido(cache, concurso = "") {
+  if (!cache?.resultado?.dezenas || cache.resultado.dezenas.length !== 15) return false;
+  if (!cache?.salvoEm) return false;
+  if (Date.now() - new Date(cache.salvoEm).getTime() > CACHE_TTL_MS) return false;
+  if (concurso && String(cache.resultado.concurso) !== String(concurso)) return false;
+  if (!concurso && Number(cache.resultado.concurso) < concursoMinimoEsperado()) return false;
+  return true;
+}
 
 function lerCacheLocal(concurso = "") {
   try {
@@ -6,9 +35,10 @@ function lerCacheLocal(concurso = "") {
     if (!texto) return null;
 
     const cache = JSON.parse(texto);
-    if (!cache?.resultado?.dezenas || cache.resultado.dezenas.length !== 15) return null;
-
-    if (concurso && String(cache.resultado.concurso) !== String(concurso)) return null;
+    if (!cacheValido(cache, concurso)) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
 
     return {
       ...cache.resultado,
@@ -18,20 +48,25 @@ function lerCacheLocal(concurso = "") {
       mensagem: "Exibindo o último resultado válido salvo neste dispositivo."
     };
   } catch {
+    localStorage.removeItem(CACHE_KEY);
     return null;
   }
 }
 
 function salvarCacheLocal(resultado) {
   if (!resultado?.dezenas || resultado.dezenas.length !== 15) return;
+  if (Number(resultado.concurso) < concursoMinimoEsperado()) return;
 
   try {
+    const existente = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+    if (existente?.resultado?.concurso > resultado.concurso) return;
+
     localStorage.setItem(CACHE_KEY, JSON.stringify({
       resultado,
       salvoEm: new Date().toISOString()
     }));
   } catch {
-    // O cache é uma melhoria de resiliência e não deve interromper o aplicativo.
+    // O cache não deve interromper o aplicativo.
   }
 }
 
@@ -67,8 +102,14 @@ export async function buscarResultadoLotofacil(concurso = "") {
     throw new Error("Não foi possível interpretar a resposta da API.");
   }
 
-  if (dados?.status === "futuro" || dados?.tipo === "proximo_concurso") {
-    return dados;
+  if (dados?.status === "futuro" || dados?.tipo === "proximo_concurso") return dados;
+
+  if (dados?.status === "desatualizado") {
+    // Remove também o cache antigo da versão anterior para impedir que o concurso 3246 reapareça.
+    localStorage.removeItem("gerador-inteligente-lotofacil:ultimo-resultado-valido:v1");
+    localStorage.removeItem(CACHE_KEY);
+    const encontrado = dados?.maiorConcursoEncontrado ? ` Último encontrado: ${dados.maiorConcursoEncontrado}.` : "";
+    throw new Error(`${dados.erro || "Fontes desatualizadas."}${encontrado} Nenhum resultado antigo será usado.`);
   }
 
   if (dados?.status === "indisponivel") {
@@ -96,6 +137,11 @@ export async function buscarResultadoLotofacil(concurso = "") {
     const cache = lerCacheLocal(concurso);
     if (cache) return cache;
     throw new Error("O resultado recebido não contém 15 dezenas válidas.");
+  }
+
+  if (!concurso && Number(dados.concurso) < concursoMinimoEsperado()) {
+    localStorage.removeItem(CACHE_KEY);
+    throw new Error(`Resultado automático desatualizado: concurso ${dados.concurso}. Use a conferência manual.`);
   }
 
   salvarCacheLocal(dados);

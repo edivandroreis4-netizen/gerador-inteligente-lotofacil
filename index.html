@@ -22,7 +22,7 @@
     <aside class="sidebar" id="menu-principal" aria-label="Menu principal">
       <button class="sidebar-close" id="btn-fechar-menu" type="button" aria-label="Fechar menu">✕</button>
       <div class="brand-block">
-        <div class="brand-mark" aria-hidden="true">✦</div>
+        <img class="project-brand-image" src="assets/icons/icon-192.png" alt="Ícone do Gerador Inteligente Lotofácil" />
         <div><span>Gerador Inteligente</span><strong>Lotofácil</strong></div>
         <span class="version">v2.3.2</span>
       </div>
@@ -35,10 +35,6 @@
         <a href="#historico">▤ <span>Histórico</span></a>
       </nav>
       <div class="sidebar-footer">
-        <div class="developer-mini">
-          <img src="assets/img/minha-foto.jpg" alt="Foto de Edivandro Lima" />
-          <div><span>Desenvolvido por</span><strong>Edivandro Lima</strong></div>
-        </div>
         <button class="install-card" type="button" id="btn-instalar" hidden>📲 Instalar aplicativo</button>
         <span class="installed-card" id="app-instalado" hidden>✅ Aplicativo instalado</span>
       </div>
@@ -47,7 +43,7 @@
 
     <div class="app-main">
       <header class="topbar">
-        <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false"><span class="menu-toggle-icon" aria-hidden="true">☰</span><span class="menu-toggle-label">Menu</span></button>
+        <button class="menu-toggle" type="button" aria-label="Abrir navegação" aria-expanded="false"><span class="menu-toggle-icon" aria-hidden="true">☰</span><span class="menu-toggle-label">Navegação</span></button>
         <div class="official-summary">
           <span>Concurso oficial</span>
           <strong id="top-concurso">--</strong>
@@ -57,10 +53,6 @@
           <strong id="top-data">--</strong>
         </div>
         <button class="btn outline" id="btn-buscar-topo" type="button">🔎 Buscar resultado oficial</button>
-        <div class="top-profile">
-          <img src="assets/img/minha-foto.jpg" alt="Edivandro Lima" />
-          <div><strong>Edivandro</strong><span>Desenvolvedor</span></div>
-        </div>
       </header>
 
       <main class="dashboard" id="dashboard">
@@ -151,7 +143,17 @@
         </section>
       </main>
 
-      <footer class="footer"><strong>Desenvolvido por Edivandro Lima</strong><span>© 2026 - Gerador Inteligente Lotofácil</span></footer>
+      <footer class="footer">
+        <div class="footer-developer">
+          <img src="assets/img/minha-foto.jpg" alt="Foto de Edivandro Lima" />
+          <div>
+            <span>Desenvolvido por</span>
+            <strong>Edivandro Lima</strong>
+            <small>Desenvolvedor Full Stack em formação</small>
+          </div>
+        </div>
+        <span class="footer-copyright">© 2026 - Gerador Inteligente Lotofácil</span>
+      </footer>
     </div>
   </div>
 </body>

@@ -1,16 +1,18 @@
 const APOSTA_MINIMA = 3.5;
 const TIMEOUT_MS = 12000;
-const CACHE_TTL_MS = 30 * 60 * 1000;
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const TOLERANCIA_CONCURSOS = 2;
 
-// Fonte principal documentada pelo projeto guidi/loteria_api.
+// Referência conhecida usada apenas para detectar fontes paradas no tempo.
+// A estimativa avança automaticamente considerando sorteios de segunda a sábado.
+const CONCURSO_REFERENCIA = 3724;
+const DATA_REFERENCIA_UTC = Date.UTC(2026, 6, 2); // 02/07/2026
+
 const GUIDI_BASE_URL = "https://api.guidi.dev.br/loteria/lotofacil";
-
-// Contingência: arquivo JSON público versionado no GitHub.
 const GITHUB_DATA_URL = new URL(
   "https://raw.githubusercontent.com/guilhermeasn/loteria.json/master/data/lotofacil.json"
 );
 
-// Cache em memória. Em funções serverless ele persiste durante instâncias aquecidas.
 const cacheResultados = new Map();
 let cacheUltimoResultado = null;
 
@@ -51,6 +53,7 @@ function normalizarPremiacao(dados) {
   const lista = obterPrimeiroValor(dados, [
     "listaRateioPremio",
     "premiacao",
+    "premiacoes",
     "rateio",
     "premios"
   ]);
@@ -79,11 +82,12 @@ function normalizarResultadoAlternativo(dados, fonte) {
     "numeros",
     "resultado",
     "resultadoOrdenado",
+    "dezenasOrdemSorteio",
     "listaDezenasOrdemSorteio"
   ]));
 
   if (!Number.isInteger(concurso) || concurso <= 0 || dezenas.length !== 15) {
-    throw new Error("A fonte alternativa não retornou um concurso válido com 15 dezenas.");
+    throw new Error("A fonte não retornou um concurso válido com 15 dezenas.");
   }
 
   const proximoConcurso = numeroSeguro(obterPrimeiroValor(corpo, [
@@ -117,7 +121,7 @@ function normalizarResultadoAlternativo(dados, fonte) {
 }
 
 function criarResultadoGitHub(concurso, dezenas) {
-  return {
+  const resultado = {
     status: "apurado",
     tipo: "resultado_oficial",
     concurso,
@@ -130,11 +134,48 @@ function criarResultadoGitHub(concurso, dezenas) {
     estimativaProximoConcurso: 0,
     valorApostaMinima: APOSTA_MINIMA,
     premiacao: [],
-    fonte: "Base pública loteria.json (GitHub)",
+    fonte: "Base histórica pública loteria.json (GitHub)",
     origemCache: false,
     dadosParciais: true,
     consultadoEm: new Date().toISOString()
   };
+
+  if (resultado.dezenas.length !== 15) {
+    throw new Error("A base histórica não retornou 15 dezenas válidas.");
+  }
+
+  return resultado;
+}
+
+function contarDiasDeSorteioDesdeReferencia() {
+  const hoje = new Date();
+  const fim = Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate());
+  if (fim <= DATA_REFERENCIA_UTC) return 0;
+
+  let quantidade = 0;
+  for (let dia = DATA_REFERENCIA_UTC + 86400000; dia <= fim; dia += 86400000) {
+    const diaSemana = new Date(dia).getUTCDay();
+    if (diaSemana !== 0) quantidade += 1; // Lotofácil: segunda a sábado.
+  }
+  return quantidade;
+}
+
+function obterConcursoMinimoEsperado() {
+  return CONCURSO_REFERENCIA + contarDiasDeSorteioDesdeReferencia() - TOLERANCIA_CONCURSOS;
+}
+
+function validarAtualidade(resultado) {
+  const minimo = obterConcursoMinimoEsperado();
+  if (Number(resultado?.concurso) < minimo) {
+    const erro = new Error(
+      `Fonte desatualizada: concurso ${resultado?.concurso || "desconhecido"}; esperado pelo menos ${minimo}.`
+    );
+    erro.tipo = "fonte_desatualizada";
+    erro.concursoEncontrado = resultado?.concurso || null;
+    erro.concursoMinimoEsperado = minimo;
+    throw erro;
+  }
+  return resultado;
 }
 
 function criarRespostaFuturo(ultimoResultado, concursoSolicitado) {
@@ -176,9 +217,7 @@ async function fetchJson(url) {
     });
 
     const texto = await resposta.text();
-    if (!resposta.ok) {
-      throw new Error(`HTTP ${resposta.status}`);
-    }
+    if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
 
     try {
       return JSON.parse(texto.replace(/^\uFEFF/, ""));
@@ -199,28 +238,28 @@ async function consultarGuidi(concurso = "") {
   return normalizarResultadoAlternativo(dados, "API pública guidi.dev.br");
 }
 
-async function consultarGitHub(concurso = "") {
+async function carregarBaseGitHub() {
   const dados = await fetchJson(GITHUB_DATA_URL);
   if (!dados || typeof dados !== "object" || Array.isArray(dados)) {
-    throw new Error("Base do GitHub em formato inesperado.");
+    throw new Error("Base histórica do GitHub em formato inesperado.");
   }
+  return dados;
+}
 
+async function consultarGitHub(concurso = "") {
+  const dados = await carregarBaseGitHub();
   const concursos = Object.keys(dados)
     .map(Number)
     .filter((numero) => Number.isInteger(numero) && numero > 0)
     .sort((a, b) => b - a);
 
-  if (!concursos.length) throw new Error("Base do GitHub sem concursos válidos.");
+  if (!concursos.length) throw new Error("Base histórica do GitHub sem concursos válidos.");
 
   const numero = concurso ? Number(concurso) : concursos[0];
   const dezenas = dados[String(numero)];
-  if (!Array.isArray(dezenas)) throw new Error(`Concurso ${numero} não encontrado na base do GitHub.`);
+  if (!Array.isArray(dezenas)) throw new Error(`Concurso ${numero} não encontrado na base histórica.`);
 
-  const resultado = criarResultadoGitHub(numero, dezenas);
-  if (resultado.dezenas.length !== 15) {
-    throw new Error("A base do GitHub não retornou 15 dezenas válidas.");
-  }
-  return resultado;
+  return criarResultadoGitHub(numero, dezenas);
 }
 
 function chaveCache(concurso = "") {
@@ -243,36 +282,76 @@ function lerCache(concurso = "", aceitarExpirado = false) {
   if (!entrada) return null;
   if (!aceitarExpirado && Date.now() - entrada.salvoEm > CACHE_TTL_MS) return null;
 
-  return {
+  const resultado = {
     ...entrada.resultado,
     status: "cache",
     origemCache: true,
     cacheSalvoEm: new Date(entrada.salvoEm).toISOString(),
     mensagem: "Exibindo o último resultado válido armazenado em cache."
   };
+
+  // O cache do último concurso nunca pode reintroduzir um resultado obsoleto.
+  if (!concurso) validarAtualidade(resultado);
+  return resultado;
 }
 
-async function consultarFontesAlternativas(concurso = "") {
-  const cacheValido = lerCache(concurso);
+async function consultarUltimoAtual() {
+  const cacheValido = lerCache("");
+  if (cacheValido) return cacheValido;
+
+  const consultas = [
+    consultarGuidi("").then((resultado) => ({ ok: true, resultado })).catch((erro) => ({ ok: false, fonte: "Guidi", erro })),
+    consultarGitHub("").then((resultado) => ({ ok: true, resultado })).catch((erro) => ({ ok: false, fonte: "GitHub", erro }))
+  ];
+
+  const respostas = await Promise.all(consultas);
+  const validos = respostas
+    .filter((item) => item.ok)
+    .map((item) => item.resultado)
+    .sort((a, b) => Number(b.concurso) - Number(a.concurso));
+
+  const falhas = respostas
+    .filter((item) => !item.ok)
+    .map((item) => `${item.fonte}: ${item.erro.message}`);
+
+  for (const resultado of validos) {
+    try {
+      validarAtualidade(resultado);
+      salvarCache(resultado, "");
+      return resultado;
+    } catch (erro) {
+      falhas.push(`${resultado.fonte}: ${erro.message}`);
+    }
+  }
+
+  const erro = new Error("Nenhuma fonte retornou um resultado suficientemente atual.");
+  erro.tipo = "fontes_desatualizadas";
+  erro.falhas = falhas;
+  erro.concursoMinimoEsperado = obterConcursoMinimoEsperado();
+  erro.maiorConcursoEncontrado = validos[0]?.concurso || null;
+  throw erro;
+}
+
+async function consultarConcursoHistorico(concurso) {
+  const cacheValido = lerCache(String(concurso));
   if (cacheValido) return cacheValido;
 
   const falhas = [];
-  const fontes = [consultarGuidi, consultarGitHub];
-
-  for (const consultar of fontes) {
+  for (const consultar of [consultarGuidi, consultarGitHub]) {
     try {
-      const resultado = await consultar(concurso);
-      salvarCache(resultado, concurso);
+      const resultado = await consultar(String(concurso));
+      if (Number(resultado.concurso) !== Number(concurso)) {
+        throw new Error(`A fonte retornou o concurso ${resultado.concurso} em vez de ${concurso}.`);
+      }
+      salvarCache(resultado, String(concurso));
       return resultado;
     } catch (erro) {
       falhas.push(`${consultar.name}: ${erro.message}`);
     }
   }
 
-  const cacheExpirado = lerCache(concurso, true) || (!concurso ? lerCache("", true) : null);
-  if (cacheExpirado) return cacheExpirado;
-
-  const erro = new Error("As fontes alternativas não responderam corretamente.");
+  const erro = new Error(`O concurso ${concurso} não foi encontrado.`);
+  erro.tipo = "concurso_nao_encontrado";
   erro.falhas = falhas;
   throw erro;
 }
@@ -295,9 +374,7 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  const valor = Array.isArray(req.query?.concurso)
-    ? req.query.concurso[0]
-    : req.query?.concurso;
+  const valor = Array.isArray(req.query?.concurso) ? req.query.concurso[0] : req.query?.concurso;
   const texto = valor ? String(valor).replace(/\D/g, "") : "";
   const concursoSolicitado = texto ? Number(texto) : null;
 
@@ -311,7 +388,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const ultimoResultado = await consultarFontesAlternativas();
+    const ultimoResultado = await consultarUltimoAtual();
 
     if (!concursoSolicitado || concursoSolicitado === ultimoResultado.concurso) {
       return enviar(res, 200, ultimoResultado);
@@ -321,31 +398,22 @@ module.exports = async function handler(req, res) {
       return enviar(res, 200, criarRespostaFuturo(ultimoResultado, concursoSolicitado));
     }
 
-    try {
-      const historico = await consultarFontesAlternativas(String(concursoSolicitado));
-      return enviar(res, 200, historico);
-    } catch {
-      return enviar(res, 404, {
-        status: "erro",
-        tipo: "concurso_nao_encontrado",
-        concursoSolicitado,
-        ultimoConcursoApurado: ultimoResultado.concurso,
-        erro: `O concurso ${concursoSolicitado} não foi encontrado.`,
-        manualMode: true
-      });
-    }
+    const historico = await consultarConcursoHistorico(concursoSolicitado);
+    return enviar(res, 200, historico);
   } catch (erro) {
     console.error("Falha na integração Lotofácil:", erro.message, erro.falhas || []);
 
-    // Resposta sempre padronizada em JSON. O frontend preserva a conferência manual.
     return enviar(res, 200, {
-      status: "indisponivel",
-      tipo: "fonte_indisponivel",
-      erro: "A consulta automática está temporariamente indisponível.",
-      mensagem: "Selecione manualmente as 15 dezenas para continuar.",
+      status: erro.tipo === "fontes_desatualizadas" ? "desatualizado" : "indisponivel",
+      tipo: erro.tipo || "fonte_indisponivel",
+      erro: erro.tipo === "fontes_desatualizadas"
+        ? "As fontes automáticas disponíveis estão desatualizadas."
+        : "A consulta automática está temporariamente indisponível.",
+      mensagem: "Para evitar uma conferência incorreta, nenhum resultado antigo foi carregado. Use a seleção manual.",
       manualMode: true,
       tentarNovamente: true,
-      detalhes: process.env.NODE_ENV === "development" ? erro.falhas : undefined,
+      maiorConcursoEncontrado: erro.maiorConcursoEncontrado || null,
+      concursoMinimoEsperado: erro.concursoMinimoEsperado || obterConcursoMinimoEsperado(),
       consultadoEm: new Date().toISOString()
     });
   }

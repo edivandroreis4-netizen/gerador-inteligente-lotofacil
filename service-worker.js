@@ -1,4 +1,4 @@
-const CACHE_NAME = "lotofacil-inteligente-v2.3.3-fontes-alternativas";
+const CACHE_NAME = "lotofacil-inteligente-v2.3.3-validacao-atualidade-menu-topo";
 
 const APP_SHELL = [
   "./",
