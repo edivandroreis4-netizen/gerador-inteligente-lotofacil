@@ -27,11 +27,13 @@ export function contarJogosPremiaveis(historico) {
 export function contarAcertosPorFaixa(historico) {
   const faixas = { "0-10": 0, "11": 0, "12": 0, "13": 0, "14": 0, "15": 0 };
 
-  historico.forEach((item) => {
-    const acertos = item.acertos || 0;
-    if (acertos <= 10) faixas["0-10"] += 1;
-    if (acertos >= 11 && acertos <= 15) faixas[String(acertos)] += 1;
-  });
+  historico
+    .filter((item) => Number.isInteger(item.acertos))
+    .forEach((item) => {
+      const acertos = item.acertos;
+      if (acertos <= 10) faixas["0-10"] += 1;
+      if (acertos >= 11 && acertos <= 15) faixas[String(acertos)] += 1;
+    });
 
   return faixas;
 }

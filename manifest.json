@@ -1,7 +1,7 @@
 {
   "name": "Gerador Inteligente Lotofácil",
   "short_name": "Lotofácil",
-  "description": "Aplicação web para gerar jogos, conferir resultados e acompanhar estatísticas da Lotofácil.",
+  "description": "PWA para gerar jogos, conferir todos os jogos salvos, usar API, cache e modo manual da Lotofácil.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

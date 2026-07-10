@@ -22,9 +22,9 @@
     <aside class="sidebar" id="menu-principal" aria-label="Menu principal">
       <button class="sidebar-close" id="btn-fechar-menu" type="button" aria-label="Fechar menu">✕</button>
       <div class="brand-block">
-        <img class="project-brand-image" src="assets/icons/icon-192.png" alt="Ícone do Gerador Inteligente Lotofácil" />
+        <div class="brand-mark" aria-hidden="true">✦</div>
         <div><span>Gerador Inteligente</span><strong>Lotofácil</strong></div>
-        <span class="version">v2.3.2</span>
+        <span class="version">v2.3.3 r4</span>
       </div>
       <nav class="sidebar-nav">
         <a class="active" href="#dashboard">⌂ <span>Dashboard</span></a>
@@ -43,7 +43,7 @@
 
     <div class="app-main">
       <header class="topbar">
-        <button class="menu-toggle" type="button" aria-label="Abrir navegação" aria-expanded="false"><span class="menu-toggle-icon" aria-hidden="true">☰</span><span class="menu-toggle-label">Navegação</span></button>
+        <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false"><span class="menu-toggle-icon" aria-hidden="true">☰</span><span class="menu-toggle-label">Menu</span></button>
         <div class="official-summary">
           <span>Concurso oficial</span>
           <strong id="top-concurso">--</strong>
@@ -98,10 +98,10 @@
               <label>Valor por jogo<input id="valor-aposta" type="text" inputmode="decimal" value="3,50" /></label>
             </div>
             <div class="game-output" id="jogo-gerado" aria-live="polite"><span class="empty-state">Gere ou selecione 15 números.</span></div>
+            <div class="quality-panel generator-quality-card" id="qualidade-jogo" aria-live="polite"><span>Qualidade do jogo</span><strong>--/100</strong><p>Gere um jogo para avaliar.</p></div>
             <div class="number-picker" id="seletor-numeros" role="group" aria-label="Selecionar números"></div>
             <p class="helper" id="ajuda-editor">Escolha exatamente 15 números.</p>
-            <div class="actions"><button class="btn purple" id="btn-gerar" type="button">◈ Gerar jogo</button><button class="btn green" id="btn-salvar" type="button" disabled>Salvar jogo</button><button class="btn secondary" id="btn-cancelar-edicao" type="button" hidden>Cancelar edição</button></div>
-            <p class="edit-status" id="edit-status" hidden></p>
+            <div class="actions"><button class="btn purple" id="btn-gerar" type="button">◈ Gerar jogo</button><button class="btn green" id="btn-salvar" type="button" disabled>Salvar jogo</button></div>
           </article>
 
           <article class="panel checker-panel" id="conferidor">
@@ -115,7 +115,7 @@
               </div>
               <textarea id="resultado-oficial" hidden></textarea>
               <label>Prêmio recebido<input id="premio-recebido" type="text" inputmode="decimal" value="0,00" /></label>
-              <div class="actions"><button class="btn blue" type="submit">Conferir jogo</button><button class="btn ghost" id="btn-limpar-resultado" type="button">Limpar</button></div>
+              <div class="actions"><button class="btn blue" type="submit">Conferir todos os jogos</button><button class="btn ghost" id="btn-limpar-resultado" type="button">Limpar</button></div>
             </form>
             <div class="result-box" id="resultado-conferencia"><h3>Resultado da conferência</h3><p>Selecione 15 dezenas ou busque o resultado oficial.</p></div>
           </article>
@@ -130,7 +130,6 @@
         </section>
 
         <section class="analytics-grid" id="financeiro">
-          <article class="panel quality-panel" id="qualidade-jogo"><span>Qualidade do jogo</span><strong>--/100</strong><p>Gere um jogo para avaliar.</p></article>
           <article class="panel financial-summary"><div class="panel-title"><div><span>Controle financeiro</span><h2>Resumo financeiro</h2></div></div><div class="finance-mini"><div><span>Investido</span><strong id="finance-investido">R$ 0,00</strong></div><div><span>Recebido</span><strong id="finance-recebido">R$ 0,00</strong></div><div><span>Saldo</span><strong id="finance-saldo">R$ 0,00</strong></div></div></article>
           <article class="panel chart-card wide"><div class="panel-title"><div><span>Evolução</span><h2>Gastos x Prêmios</h2></div></div><canvas id="chart-financeiro" aria-label="Gráfico de gastos e prêmios"></canvas></article>
           <article class="panel chart-card"><h2>Pares x Ímpares</h2><canvas id="chart-pares-impares"></canvas></article>
@@ -138,7 +137,14 @@
         </section>
 
         <section class="panel history-panel" id="historico">
-          <div class="panel-title"><div><span>Histórico</span><h2>Jogos salvos</h2></div><button class="btn danger" id="btn-limpar" type="button">Limpar histórico</button></div>
+          <div class="panel-title history-title"><div><span>Histórico</span><h2>Jogos salvos</h2></div><button class="btn danger" id="btn-limpar" type="button">Limpar histórico</button></div>
+          <div class="history-filters" aria-label="Filtros do histórico">
+            <button class="history-filter active" type="button" data-history-filter="todos">Todos</button>
+            <button class="history-filter" type="button" data-history-filter="conferidos">Conferidos</button>
+            <button class="history-filter" type="button" data-history-filter="pendentes">Pendentes</button>
+            <button class="history-filter" type="button" data-history-filter="premiaveis">11+ acertos</button>
+            <button class="history-filter" type="button" data-history-filter="melhores">Melhores</button>
+          </div>
           <div class="history-list" id="lista-historico"></div>
         </section>
       </main>
@@ -149,10 +155,9 @@
           <div>
             <span>Desenvolvido por</span>
             <strong>Edivandro Lima</strong>
-            <small>Desenvolvedor Full Stack em formação</small>
           </div>
         </div>
-        <span class="footer-copyright">© 2026 - Gerador Inteligente Lotofácil</span>
+        <span>© 2026 - Gerador Inteligente Lotofácil</span>
       </footer>
     </div>
   </div>

@@ -10,28 +10,28 @@ import {
 } from "./services/estatisticas.service.js";
 import {
   adicionarJogo,
-  atualizarJogoPorId,
-  atualizarUltimoJogo,
   buscarHistorico,
+  salvarHistorico,
   limparHistorico,
+  removerJogo,
   buscarResultadosOficiais,
   salvarResultadoOficial
 } from "./services/storage.service.js";
 import { resultadosExemplo } from "./data/resultados.js";
 import { buscarResultadoLotofacil } from "./services/lotofacil-api.service.js";
 import { validarAposta } from "./validators/aposta.validator.js";
-import { alertaAcertos, alertaErro, alertaSucesso, confirmarLimpeza } from "./ui/alerts.ui.js";
+import { alertaAcertos, alertaErro, alertaSucesso, confirmarLimpeza, confirmarExclusaoJogo } from "./ui/alerts.ui.js";
 import { renderizarGraficoAcertos, renderizarGraficoParesImpares, renderizarGraficoFinanceiro } from "./ui/charts.ui.js";
 
 let jogoAtual = [];
 let resultadoSelecionado = [];
 let eventoInstalacaoPendente = null;
 let ultimoResultadoCarregado = null;
-let jogoEmEdicaoId = null;
+let filtroHistorico = "todos";
 
 const $ = (id) => document.getElementById(id);
 const elementos = {
-  btnGerar: $("btn-gerar"), btnSalvar: $("btn-salvar"), btnCancelarEdicao: $("btn-cancelar-edicao"), editStatus: $("edit-status"), btnLimpar: $("btn-limpar"),
+  btnGerar: $("btn-gerar"), btnSalvar: $("btn-salvar"), btnLimpar: $("btn-limpar"),
   btnBuscarOficial: $("btn-buscar-oficial"), btnBuscarTopo: $("btn-buscar-topo"), btnAtualizarConcurso: $("btn-atualizar-concurso"),
   statusResultadoOficial: $("status-resultado-oficial"), jogoGerado: $("jogo-gerado"), seletorNumeros: $("seletor-numeros"),
   seletorResultado: $("seletor-resultado"), contadorSelecionados: $("contador-selecionados"), contadorResultado: $("contador-resultado"),
@@ -68,9 +68,38 @@ function formatarData(valor) {
   return Number.isNaN(data.getTime()) ? String(valor) : new Intl.DateTimeFormat("pt-BR").format(data);
 }
 
+
+function ehFaixaPremiada(acertos) {
+  return Number(acertos) >= 11;
+}
+
+function extrairAcertosFaixa(faixa) {
+  const direto = Number(faixa?.acertos ?? faixa?.quantidadeAcertos ?? faixa?.faixa);
+  if (Number.isInteger(direto) && direto >= 11 && direto <= 15) return direto;
+
+  const descricao = String(faixa?.descricao ?? faixa?.descricaoFaixa ?? "");
+  const encontrado = descricao.match(/(11|12|13|14|15)/);
+  return encontrado ? Number(encontrado[1]) : null;
+}
+
+function obterPremioOficialPorAcertos(acertos) {
+  if (!ehFaixaPremiada(acertos)) return 0;
+
+  const premiacao = Array.isArray(ultimoResultadoCarregado?.premiacao)
+    ? ultimoResultadoCarregado.premiacao
+    : [];
+  const faixa = premiacao.find((item) => extrairAcertosFaixa(item) === Number(acertos));
+
+  return Number(faixa?.valor ?? faixa?.valorPremio ?? faixa?.premio) || 0;
+}
+
+function obterTotalPremios(jogos) {
+  return jogos.reduce((total, item) => total + (Number(item.premioRecebido) || Number(item.valorPremio) || 0), 0);
+}
+
 function calcularResumoFinanceiro(historico) {
   const totalGasto = historico.reduce((total, item) => total + (Number(item.valorApostado) || 0), 0);
-  const totalRecebido = historico.reduce((total, item) => total + (Number(item.premioRecebido) || 0), 0);
+  const totalRecebido = historico.reduce((total, item) => total + (Number(item.premioRecebido) || Number(item.valorPremio) || 0), 0);
   const saldo = totalRecebido - totalGasto;
   const retorno = totalGasto > 0 ? (totalRecebido / totalGasto) * 100 : 0;
   return { totalGasto, totalRecebido, saldo, retorno };
@@ -140,24 +169,83 @@ function renderizarQualidade() {
   elementos.qualidadeJogo.innerHTML = `<span>Qualidade do jogo</span><strong>${qualidade.pontos}/100</strong><p>${qualidade.emoji} ${qualidade.classificacao}</p>`;
 }
 
+function obterClasseQualidade(classificacao = "") {
+  const texto = String(classificacao).toLowerCase();
+  if (texto.includes("excelente")) return "excellent";
+  if (texto.includes("boa")) return "good";
+  if (texto.includes("baixa")) return "low";
+  return "neutral";
+}
+
+function filtrarHistorico(historico) {
+  const conferido = (item) => Number.isInteger(item.acertos);
+  const filtros = {
+    todos: () => historico,
+    conferidos: () => historico.filter(conferido),
+    pendentes: () => historico.filter((item) => !conferido(item)),
+    premiaveis: () => historico.filter((item) => (item.acertos || 0) >= 11),
+    melhores: () => historico.filter(conferido).sort((a, b) => (b.acertos || 0) - (a.acertos || 0))
+  };
+
+  return (filtros[filtroHistorico] || filtros.todos)();
+}
+
+function obterRotuloFiltroHistorico() {
+  const rotulos = {
+    todos: "todos",
+    conferidos: "conferidos",
+    pendentes: "pendentes",
+    premiaveis: "com 11 acertos ou mais",
+    melhores: "com melhor desempenho"
+  };
+  return rotulos[filtroHistorico] || "todos";
+}
+
 function renderizarHistorico() {
   const historico = buscarHistorico();
   if (!historico.length) {
     elementos.listaHistorico.innerHTML = `<p class="empty-state">Nenhum jogo salvo ainda.</p>`;
     return;
   }
-  elementos.listaHistorico.innerHTML = historico.map((item) => {
+
+  const historicoFiltrado = filtrarHistorico(historico);
+  if (!historicoFiltrado.length) {
+    elementos.listaHistorico.innerHTML = `<p class="empty-state">Nenhum jogo encontrado no filtro ${obterRotuloFiltroHistorico()}.</p>`;
+    return;
+  }
+
+  elementos.listaHistorico.innerHTML = historicoFiltrado.map((item) => {
     const data = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(item.data));
-    const status = item.status || (item.acertos === null ? "Não apurado" : "Conferido");
+    const foiConferido = Number.isInteger(item.acertos);
+    const premiado = Boolean(item.premiado) || ehFaixaPremiada(item.acertos);
     const valor = Number(item.valorApostado) || 0;
-    const premio = Number(item.premioRecebido) || 0;
+    const premio = Number(item.premioRecebido) || Number(item.valorPremio) || 0;
     const saldo = premio - valor;
-    return `<article class="history-item">
-      <header><div class="history-heading"><strong class="history-contest">Concurso ${item.concurso || "--"}</strong><span class="history-date">${data}</span></div><strong class="history-hits">${item.acertos === null ? "Não conferido" : `${item.acertos} acertos`}</strong></header>
-      <span class="status-badge${status === "Conferido" ? " checked" : ""}">${status}</span>
+    const qualidade = item.qualidade || avaliarQualidadeJogo(item.jogo || []);
+    const classeQualidade = obterClasseQualidade(qualidade.classificacao);
+    const id = item.id || "";
+    const status = premiado ? "Aposta premiada" : item.status || (foiConferido ? "Conferido" : "Não apurado");
+    const origemPremio = item.origemPremio === "api" ? "valor oficial" : item.origemPremio === "manual" ? "valor informado" : "valor não informado";
+
+    return `<article class="history-item${premiado ? " awarded" : ""}" data-game-id="${id}">
+      <header>
+        <div class="history-heading">
+          <strong class="history-contest">Concurso ${item.concurso || "--"}</strong>
+          <span class="history-date">${data}</span>
+        </div>
+        <strong class="history-hits">${foiConferido ? `${item.acertos} acertos` : "Não conferido"}</strong>
+      </header>
+      <div class="history-tags">
+        <span class="status-badge${status === "Conferido" ? " checked" : ""}${premiado ? " prize" : ""}">${status}</span>
+        ${premiado ? `<span class="prize-badge">🏆 ${premio > 0 ? formatarMoeda(premio) : "Prêmio a confirmar"}</span>` : ""}
+        <span class="quality-badge ${classeQualidade}">Qualidade: ${qualidade.pontos}/100 • ${qualidade.classificacao}</span>
+      </div>
       <div class="history-balls">${criarBolas(item.jogo)}</div>
       <div class="history-financial"><span>Aposta: <strong>${formatarMoeda(valor)}</strong></span><span>Prêmio: <strong>${formatarMoeda(premio)}</strong></span><span class="${saldo > 0 ? "positive" : saldo < 0 ? "negative" : "neutral"}">Resultado: <strong>${saldo > 0 ? "+" : ""}${formatarMoeda(saldo)}</strong></span></div>
-      <div class="history-actions"><button class="btn edit-game-btn" type="button" data-edit-game="${item.id}" aria-label="Editar jogo do concurso ${item.concurso || "sem número"}">✏️ Editar jogo</button></div>
+      ${premiado ? `<p class="prize-note">Aposta premiada com ${item.acertos} acertos • ${origemPremio}.</p>` : ""}
+      <div class="history-actions">
+        <button class="history-delete" type="button" data-delete-game="${id}" aria-label="Excluir jogo do concurso ${item.concurso || "sem concurso"}">Excluir jogo</button>
+      </div>
     </article>`;
   }).join("");
 }
@@ -181,7 +269,7 @@ function atualizarCardConcurso(resultado) {
   elementos.ultimoConcursoNumero.textContent = resultado.concurso || "--";
   elementos.ultimoConcursoData.textContent = formatarData(resultado.data);
   elementos.ultimoResultadoBolas.innerHTML = criarBolas(resultado.dezenas);
-  elementos.ultimoConcursoStatus.textContent = "Carregado";
+  elementos.ultimoConcursoStatus.textContent = resultado.origemDados === "cache" ? "Cache local" : "Carregado";
   elementos.proximoConcursoNumero.textContent = resultado.proximoConcurso || "--";
   elementos.premioEstimado.textContent = formatarMoeda(resultado.estimativaProximoConcurso || 0);
   elementos.proximoConcursoData.textContent = resultado.dataProximoConcurso ? `${formatarData(resultado.dataProximoConcurso)}${resultado.horarioProximoConcurso ? ` às ${resultado.horarioProximoConcurso}` : ""}` : "Consulte novamente perto do sorteio";
@@ -221,82 +309,119 @@ function iniciarGerador() {
   atualizarDashboard();
 }
 
-function sairDoModoEdicao() {
-  jogoEmEdicaoId = null;
-  elementos.btnSalvar.textContent = "Salvar jogo";
-  elementos.btnCancelarEdicao.hidden = true;
-  elementos.editStatus.hidden = true;
-  elementos.editStatus.textContent = "";
-}
-
-function iniciarEdicaoJogo(id) {
-  const item = buscarHistorico().find((registro) => registro.id === id);
-  if (!item) return alertaErro("Jogo não encontrado", "Não foi possível localizar este registro.");
-
-  jogoEmEdicaoId = id;
-  jogoAtual = [...item.jogo].sort((a, b) => a - b);
-  elementos.numeroConcurso.value = item.concurso || "";
-  elementos.valorAposta.value = Number(item.valorApostado || 0).toFixed(2).replace(".", ",");
-  elementos.premioRecebido.value = Number(item.premioRecebido || 0).toFixed(2).replace(".", ",");
-  elementos.btnSalvar.textContent = "Atualizar jogo";
-  elementos.btnCancelarEdicao.hidden = false;
-  elementos.editStatus.hidden = false;
-  elementos.editStatus.textContent = `Editando o concurso ${item.concurso || "sem número"}. Altere as dezenas, o concurso ou o valor e clique em Atualizar jogo.`;
-  renderizarJogo();
-  renderizarQualidade();
-  document.querySelector("#gerador")?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function cancelarEdicao() {
-  sairDoModoEdicao();
-  jogoAtual = [];
-  elementos.numeroConcurso.value = "";
-  elementos.valorAposta.value = "3,50";
-  elementos.premioRecebido.value = "0,00";
-  renderizarJogo();
-  renderizarQualidade();
-}
-
 function salvarJogoAtual() {
   if (jogoAtual.length !== 15) return alertaErro("Jogo incompleto", "Selecione exatamente 15 números.");
   const valor = converterMoedaParaNumero(elementos.valorAposta.value);
   if (!Number.isFinite(valor) || valor <= 0) return alertaErro("Valor inválido", "Informe um valor maior que zero.");
-
-  if (jogoEmEdicaoId) {
-    const anterior = buscarHistorico().find((item) => item.id === jogoEmEdicaoId);
-    if (!anterior) return alertaErro("Jogo não encontrado", "O registro que estava sendo editado não existe mais.");
-    const jogoMudou = JSON.stringify([...anterior.jogo].sort((a,b)=>a-b)) !== JSON.stringify([...jogoAtual].sort((a,b)=>a-b));
-    atualizarJogoPorId(jogoEmEdicaoId, {
-      jogo: [...jogoAtual],
-      concurso: obterConcursoDigitado() || null,
-      valorApostado: valor,
-      ...(jogoMudou ? { acertos: null, resultadoOficial: [], premioRecebido: 0, status: "Não apurado" } : {})
-    });
-    alertaSucesso("Jogo atualizado", jogoMudou ? "As alterações foram salvas e a conferência anterior foi reiniciada." : "As alterações foram salvas neste navegador.");
-    sairDoModoEdicao();
-  } else {
-    adicionarJogo(jogoAtual, obterConcursoDigitado(), valor);
-    alertaSucesso("Jogo salvo", "A combinação e os dados financeiros foram salvos neste navegador.");
-  }
-
+  const qualidade = avaliarQualidadeJogo(jogoAtual);
+  adicionarJogo(jogoAtual, obterConcursoDigitado(), valor, qualidade);
+  alertaSucesso("Jogo salvo", `A combinação foi salva com qualidade ${qualidade.pontos}/100 (${qualidade.classificacao}).`);
   renderizarHistorico();
   atualizarDashboard();
 }
 
+function renderizarResumoConferencia(jogosConferidos, premioInformado) {
+  const melhorResultado = jogosConferidos.reduce((maior, item) => Math.max(maior, item.acertos || 0), 0);
+  const jogosPremiados = jogosConferidos.filter((item) => Boolean(item.premiado) || ehFaixaPremiada(item.acertos));
+  const totalPremios = obterTotalPremios(jogosConferidos);
+  const linhas = jogosConferidos.slice(0, 10).map((item, indice) => {
+    const premiado = Boolean(item.premiado) || ehFaixaPremiada(item.acertos);
+    const premio = Number(item.premioRecebido) || Number(item.valorPremio) || 0;
+    const origemPremio = item.origemPremio === "api" ? "valor oficial" : item.origemPremio === "manual" ? "valor informado" : "valor não informado";
+
+    return `
+      <article class="conference-row${premiado ? " awarded" : ""}">
+        <strong>Jogo ${indice + 1}</strong>
+        <span>${item.acertos} acertos</span>
+        <div class="history-balls">${criarBolas(item.numerosAcertados || [])}</div>
+        ${premiado ? `<div class="conference-prize"><strong>🏆 Aposta premiada</strong><span>${premio > 0 ? formatarMoeda(premio) : "Prêmio a confirmar"}</span><small>${origemPremio}</small></div>` : `<small class="conference-no-prize">Não premiada</small>`}
+      </article>
+    `;
+  }).join("");
+  const restante = jogosConferidos.length > 10
+    ? `<p class="helper">Mais ${jogosConferidos.length - 10} jogo(s) foram conferidos no histórico.</p>`
+    : "";
+
+  elementos.resultadoConferencia.innerHTML = `
+    <h3>${jogosConferidos.length} jogo(s) conferido(s)</h3>
+    <p>Melhor resultado: <strong>${melhorResultado} acertos</strong></p>
+    <p>Apostas premiadas: <strong>${jogosPremiados.length}</strong></p>
+    <p>Valor em prêmios: <strong>${formatarMoeda(totalPremios)}</strong></p>
+    ${premioInformado > 0 && totalPremios === 0 ? `<p class="helper">Prêmio informado manualmente: <strong>${formatarMoeda(premioInformado)}</strong></p>` : ""}
+    <div class="conference-list">${linhas}</div>
+    ${restante}
+  `;
+
+  alertaAcertos(melhorResultado, totalPremios > 0 ? formatarMoeda(totalPremios) : "");
+}
+
 function processarConferencia(resultado, concursoInformado = "") {
   const historico = buscarHistorico();
-  const jogo = historico[0]?.jogo || jogoAtual;
-  if (!jogo.length) return alertaErro("Nenhum jogo encontrado", "Gere ou salve um jogo antes de conferir.");
+  const existeHistorico = historico.length > 0;
+  const jogosParaConferir = existeHistorico
+    ? historico
+    : jogoAtual.length
+      ? [{
+          id: "jogo-atual",
+          data: new Date().toISOString(),
+          concurso: concursoInformado || obterConcursoDigitado() || null,
+          status: "Conferido",
+          jogo: jogoAtual,
+          valorApostado: converterMoedaParaNumero(elementos.valorAposta.value),
+          premioRecebido: 0,
+          valorPremio: 0,
+          premiado: false,
+          origemPremio: "",
+          acertos: null,
+          qualidade: avaliarQualidadeJogo(jogoAtual),
+          resultadoOficial: []
+        }]
+      : [];
+
+  if (!jogosParaConferir.length) {
+    return alertaErro("Nenhum jogo encontrado", "Gere ou salve pelo menos um jogo antes de conferir.");
+  }
+
   const validacao = validarAposta(resultado, 15);
   if (!validacao.valido) return alertaErro("Resultado inválido", validacao.mensagem);
-  const conferencia = conferirAcertos(jogo, resultado);
-  const premio = converterMoedaParaNumero(elementos.premioRecebido.value);
-  if (!Number.isFinite(premio)) return alertaErro("Prêmio inválido", "Informe 0,00 quando não houver prêmio.");
-  const concurso = concursoInformado || historico[0]?.concurso || obterConcursoDigitado();
-  atualizarUltimoJogo({ acertos: conferencia.total, resultadoOficial: resultado, premioRecebido: premio, status: "Conferido", concurso: concurso || null });
+
+  const premioInformado = converterMoedaParaNumero(elementos.premioRecebido.value);
+  if (!Number.isFinite(premioInformado)) return alertaErro("Prêmio inválido", "Informe 0,00 quando não houver prêmio.");
+
+  const concurso = concursoInformado || obterConcursoDigitado() || ultimoResultadoCarregado?.concurso || jogosParaConferir[0]?.concurso || null;
+  let premioManualAplicado = false;
+
+  const jogosConferidos = jogosParaConferir.map((item) => {
+    const conferencia = conferirAcertos(item.jogo, resultado);
+    const premiado = ehFaixaPremiada(conferencia.total);
+    let valorPremio = premiado ? obterPremioOficialPorAcertos(conferencia.total) : 0;
+    let origemPremio = valorPremio > 0 ? "api" : "";
+
+    if (premiado && valorPremio <= 0 && premioInformado > 0 && !premioManualAplicado) {
+      valorPremio = premioInformado;
+      origemPremio = "manual";
+      premioManualAplicado = true;
+    }
+
+    return {
+      ...item,
+      concurso: concurso || item.concurso || null,
+      acertos: conferencia.total,
+      numerosAcertados: conferencia.acertados,
+      qualidade: item.qualidade || avaliarQualidadeJogo(item.jogo || []),
+      resultadoOficial: resultado,
+      premiado,
+      valorPremio,
+      premioRecebido: valorPremio,
+      origemPremio,
+      status: premiado ? "Aposta premiada" : "Conferido",
+      conferidoEm: new Date().toISOString()
+    };
+  });
+
+  if (existeHistorico) salvarHistorico(jogosConferidos);
   salvarResultadoOficial(concurso, resultado);
-  elementos.resultadoConferencia.innerHTML = `<h3>${conferencia.total} acertos</h3><p>Prêmio informado: <strong>${formatarMoeda(premio)}</strong></p><p>Números acertados:</p><div class="history-balls">${criarBolas(conferencia.acertados)}</div>`;
-  alertaAcertos(conferencia.total);
+  renderizarResumoConferencia(jogosConferidos, premioInformado);
   renderizarHistorico();
   atualizarDashboard();
 }
@@ -336,20 +461,11 @@ async function buscarEConferirResultadoOficial() {
     atualizarCardConcurso(resultado);
     ativarAbaConcurso("ultimo");
     elementos.statusResultadoOficial.className = "official-status success";
-    const origem = resultado.origemCache
-      ? "carregado do último cache válido"
-      : `carregado pela fonte ${resultado.fonte || "alternativa"}`;
-    elementos.statusResultadoOficial.textContent = `Concurso ${resultado.concurso} ${origem}.`;
-    if (buscarHistorico()[0]?.jogo?.length || jogoAtual.length) {
-      processarConferencia(resultado.dezenas, String(resultado.concurso));
-    } else {
-      alertaSucesso(
-        resultado.origemCache ? "Resultado recuperado do cache" : "Resultado carregado",
-        resultado.origemCache
-          ? "Foi usado o último resultado válido salvo. Confira a data e o concurso antes de prosseguir."
-          : "Agora gere ou salve um jogo para conferir."
-      );
-    }
+    elementos.statusResultadoOficial.textContent = resultado.origemDados === "cache"
+      ? `Concurso ${resultado.concurso} carregado pelo cache local.`
+      : `Concurso ${resultado.concurso} carregado com sucesso.`;
+    if (buscarHistorico().length || jogoAtual.length) processarConferencia(resultado.dezenas, String(resultado.concurso));
+    else alertaSucesso("Resultado oficial carregado", "Agora gere ou salve um jogo para conferir.");
   } catch (erro) {
     elementos.statusResultadoOficial.className = "official-status error";
     elementos.statusResultadoOficial.textContent = erro.message;
@@ -421,18 +537,40 @@ async function apagarHistorico() {
   atualizarDashboard();
 }
 
+async function excluirJogoHistorico(id) {
+  if (!id) return;
+  if (!(await confirmarExclusaoJogo())) return;
+  removerJogo(id);
+  renderizarHistorico();
+  atualizarDashboard();
+  alertaSucesso("Jogo excluído", "O registro foi removido do histórico.");
+}
+
+function configurarFiltrosHistorico() {
+  document.querySelectorAll("[data-history-filter]").forEach((botao) => {
+    botao.addEventListener("click", () => {
+      filtroHistorico = botao.dataset.historyFilter || "todos";
+      document.querySelectorAll("[data-history-filter]").forEach((item) => {
+        const ativo = item === botao;
+        item.classList.toggle("active", ativo);
+        item.setAttribute("aria-pressed", String(ativo));
+      });
+      renderizarHistorico();
+    });
+  });
+}
+
 function iniciarApp() {
   elementos.btnGerar.addEventListener("click", iniciarGerador);
   elementos.btnSalvar.addEventListener("click", salvarJogoAtual);
-  elementos.btnCancelarEdicao.addEventListener("click", cancelarEdicao);
   elementos.btnLimpar.addEventListener("click", apagarHistorico);
   elementos.formConferir.addEventListener("submit", (event) => { event.preventDefault(); processarConferencia(resultadoSelecionado); });
   [elementos.btnBuscarOficial, elementos.btnBuscarTopo, elementos.btnAtualizarConcurso].forEach((botao) => botao?.addEventListener("click", buscarEConferirResultadoOficial));
   elementos.btnLimparResultado.addEventListener("click", () => { resultadoSelecionado = []; renderizarResultadoManual(); });
+  elementos.listaHistorico.addEventListener("click", (event) => { const botao = event.target.closest("[data-delete-game]"); if (botao) excluirJogoHistorico(botao.dataset.deleteGame); });
   elementos.seletorNumeros.addEventListener("click", (event) => { const botao = event.target.closest("[data-number]"); if (botao) alternarNumeroJogo(Number(botao.dataset.number)); });
   elementos.seletorResultado.addEventListener("click", (event) => { const botao = event.target.closest("[data-result-number]"); if (botao) alternarNumeroResultado(Number(botao.dataset.resultNumber)); });
-  elementos.listaHistorico.addEventListener("click", (event) => { const botao = event.target.closest("[data-edit-game]"); if (botao) iniciarEdicaoJogo(botao.dataset.editGame); });
-  configurarMenu(); configurarTabsConcurso(); configurarPWA();
+  configurarMenu(); configurarTabsConcurso(); configurarFiltrosHistorico(); configurarPWA();
   renderizarJogo(); renderizarResultadoManual(); renderizarQualidade(); renderizarHistorico(); atualizarDashboard();
 }
 

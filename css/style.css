@@ -18,7 +18,7 @@
 @media(max-width:560px){.topbar{height:auto;min-height:68px;padding:10px}.official-summary{min-width:95px}.official-summary strong{font-size:1rem}.btn.outline{font-size:.73rem;padding:9px}.summary-grid{grid-template-columns:1fr 1fr}.summary-card{padding:12px}.summary-card strong{font-size:1.1rem}.form-grid{grid-template-columns:1fr}.number-picker{grid-template-columns:repeat(5,1fr)}.number-option{padding:8px 2px;font-size:.75rem}.actions{flex-direction:column}.actions .btn{width:100%}.delayed-highlight{grid-template-columns:repeat(2,1fr)}.delayed-grid{grid-template-columns:repeat(2,1fr)}.finance-mini{grid-template-columns:1fr}.history-financial{grid-template-columns:1fr}.contest-details{display:grid;gap:12px}.footer{padding:18px 12px}.workspace-grid{gap:10px}.panel{padding:13px}}
 
 
-/* Ajustes mobile v2.3.2 */
+/* Ajustes mobile v2.3.3 */
 .sidebar-close,.menu-backdrop{display:none}
 @media(max-width:900px){
   body.menu-open{overflow:hidden}
@@ -55,7 +55,7 @@
 }
 
 
-/* Refinamentos finais de mobile — v2.3.2 */
+/* Refinamentos finais de mobile — v2.3.3 */
 .history-heading{display:grid;gap:3px}.history-contest{font-size:.96rem;color:#4338ca}.history-date{font-size:.72rem;color:var(--muted)}.history-hits{align-self:start}
 @media(max-width:900px){
   .topbar{height:auto;min-height:72px;display:grid;grid-template-columns:auto minmax(92px,1fr);align-items:center;gap:8px 10px;padding:10px 12px}
@@ -72,196 +72,277 @@
   .history-contest{font-size:.9rem}.history-date{font-size:.68rem}.history-hits{font-size:.78rem}
 }
 
-/* Ajustes v2.3.3: edição de jogos e fluxo mobile */
-.history-actions{display:flex;justify-content:flex-end;margin-top:10px}.edit-game-btn{padding:8px 12px;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe}.edit-game-btn:hover{background:#e0e7ff;transform:translateY(-1px)}.edit-status{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;font-size:.82rem;font-weight:700}.btn.secondary{background:#f8fafc;color:#334155;border:1px solid #cbd5e1}
-@media(max-width:900px){.topbar #btn-buscar-topo{display:none}.history-actions .btn{width:100%}}
+
+/* Conferência de todos os jogos — v2.3.3 */
+.conference-list{display:grid;gap:8px;margin-top:10px}
+.conference-row{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:8px;border:1px solid var(--border);border-radius:10px;background:#fff;padding:8px}
+.conference-row span{font-size:.8rem;font-weight:800;color:#4338ca}
+.conference-row .history-balls{margin:0}
+@media(max-width:560px){.conference-row{grid-template-columns:1fr;align-items:start}}
 
 
-/* Identidade mobile: imagem do projeto no topo e autoria no rodapé */
-.project-brand-image{
-  width:42px;
-  height:42px;
-  border-radius:14px;
-  object-fit:cover;
-  box-shadow:0 8px 22px rgba(124,58,237,.3);
+/* Correções finais v2.3.3 — assinatura única, rodapé mobile e menu vertical */
+.footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:22px;
+  color:var(--muted);
+  font-size:.82rem;
 }
 .footer-developer{
   display:flex;
   align-items:center;
-  gap:11px;
+  gap:10px;
+  color:#0f172a;
 }
 .footer-developer img{
-  width:46px;
-  height:46px;
+  width:42px;
+  height:42px;
   border-radius:50%;
   object-fit:cover;
-  border:2px solid #7c3aed;
-  box-shadow:0 6px 16px rgba(15,23,42,.14);
+  border:2px solid #e0e7ff;
+  box-shadow:0 6px 16px rgba(30,41,59,.12);
 }
-.footer-developer span,
-.footer-developer small{
+.footer-developer span{
   display:block;
   color:var(--muted);
+  font-size:.72rem;
 }
 .footer-developer strong{
   display:block;
-  color:#0f172a;
-  margin:2px 0;
+  font-size:.9rem;
+  color:#1e1b4b;
 }
-.footer-developer small{font-size:.72rem}
-.footer-copyright{margin-left:auto}
-
 @media(max-width:900px){
-  .sidebar .developer-mini{display:none}
-  .brand-block{
-    grid-template-columns:54px minmax(0,1fr) auto;
-    padding:0 4px 22px;
-  }
-  .project-brand-image{
-    width:54px;
-    height:54px;
-    border-radius:16px;
-  }
-  .brand-block strong{font-size:1.42rem}
-  .brand-block span{font-size:.74rem}
-  .footer{
-    align-items:center;
-    text-align:left;
-    gap:12px;
-    padding:18px 14px calc(18px + env(safe-area-inset-bottom));
-    background:#f8fafc;
-    border-top:1px solid var(--border);
-  }
-  .footer-developer{width:100%}
-  .footer-developer img{width:52px;height:52px}
-  .footer-copyright{
+  .sidebar{
+    left:0;
+    top:0;
     width:100%;
-    margin-left:0;
-    padding-top:10px;
-    border-top:1px solid var(--border);
+    max-width:none;
+    height:auto;
+    max-height:88vh;
+    overflow:auto;
+    padding:58px 16px 16px;
+    transform:translateY(-110%);
+    transition:transform .28s ease;
+    border-radius:0 0 22px 22px;
+    box-shadow:0 20px 45px rgba(2,12,28,.38);
+  }
+  .sidebar.open{transform:translateY(0)}
+  .sidebar-close{top:12px;right:16px}
+  .menu-backdrop:not([hidden]){
+    display:block;
+    position:fixed;
+    inset:0;
+    border:0;
+    background:rgba(2,8,23,.54);
+    backdrop-filter:blur(2px);
+    z-index:25;
+  }
+  .footer{
+    flex-direction:column;
+    align-items:center;
     text-align:center;
+    gap:8px;
+    padding:18px 12px calc(18px + env(safe-area-inset-bottom));
+  }
+  .footer-developer{
+    justify-content:center;
   }
 }
-
 @media(max-width:560px){
-  .brand-block{grid-template-columns:50px minmax(0,1fr) auto;gap:9px}
-  .project-brand-image{width:50px;height:50px}
-  .brand-block strong{font-size:1.3rem}
-  .footer-developer strong{font-size:.94rem}
-  .footer-developer small{font-size:.68rem}
+  .footer-developer img{width:38px;height:38px}
+  .footer-developer strong{font-size:.86rem}
+  .footer{font-size:.76rem}
 }
 
-/* v2.3.3 — identidade mais discreta no desktop e menu superior no mobile */
-/* A autoria permanece somente no rodapé para evitar repetição visual. */
-.sidebar .developer-mini,
+
+/* Ajustes solicitados — v2.3.3 revisão 2
+   - remove perfil/assinatura do topo via HTML
+   - melhora contraste das dezenas no resultado da conferência */
+.conference-row .ball,
+.result-box .history-balls .ball,
+.result-box .conference-list .ball{
+  color:#ffffff !important;
+  background:#6d28d9;
+  text-shadow:0 1px 2px rgba(15,23,42,.22);
+}
+.conference-row > span{
+  color:#312e81;
+}
 .top-profile{
   display:none !important;
 }
 
-/* Mantém o botão de instalação no rodapé do menu desktop. */
-.sidebar-footer{
-  margin-top:auto;
+/* Revisão 3 — qualidade do jogo dentro do gerador */
+.generator-quality-card{
+  margin:12px 0;
+  padding:12px 14px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:0 10px 24px rgba(15,23,42,.06);
+}
+.generator-quality-card span{
+  display:block;
+  font-size:.78rem;
+  font-weight:800;
+  letter-spacing:.01em;
+}
+.generator-quality-card strong{
+  display:block;
+  font-size:1.35rem;
+  margin:6px 0 4px;
+}
+.generator-quality-card p{
+  margin:0;
+  font-size:.86rem;
 }
 
-@media(max-width:900px){
-  /* O antigo menu lateral vira um painel superior. */
-  .sidebar{
-    inset:0 0 auto 0;
-    width:100%;
-    max-width:none;
-    height:auto;
-    max-height:min(92dvh,760px);
-    padding:18px 16px calc(18px + env(safe-area-inset-bottom));
-    transform:translateY(-110%);
-    transition:transform .28s ease;
-    border-radius:0 0 22px 22px;
-    box-shadow:0 18px 48px rgba(2,12,28,.36);
-    overflow-y:auto;
-  }
-
-  .sidebar.open{
-    transform:translateY(0);
-  }
-
-  .sidebar-close{
-    top:14px;
-    right:14px;
-  }
-
-  .brand-block{
-    grid-template-columns:52px minmax(0,1fr) auto;
-    padding:2px 48px 16px 2px;
-    border-bottom:1px solid rgba(255,255,255,.12);
-    margin-bottom:12px;
-  }
-
-  .project-brand-image{
-    width:52px;
-    height:52px;
-  }
-
-  .sidebar-nav{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:8px;
-  }
-
-  .sidebar-nav a{
-    min-height:52px;
-    padding:11px 12px;
-    justify-content:flex-start;
-  }
-
-  .sidebar-footer{
-    margin-top:14px;
-    grid-template-columns:1fr;
-  }
-
-  .install-card,
-  .installed-card{
-    width:100%;
-  }
-
-  .menu-backdrop:not([hidden]){
-    background:rgba(2,8,23,.5);
-  }
-
-  .menu-toggle{
-    min-width:118px;
-  }
+/* Revisão 4 — melhorias de histórico e qualidade salva */
+.history-title{
+  align-items:center;
 }
-
+.history-filters{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:-4px 0 12px;
+}
+.history-filter{
+  border:1px solid #c7d2fe;
+  border-radius:999px;
+  background:#eef2ff;
+  color:#3730a3;
+  padding:8px 12px;
+  font-size:.78rem;
+  font-weight:900;
+  transition:background .2s ease, color .2s ease, transform .2s ease;
+}
+.history-filter:hover{
+  background:#e0e7ff;
+}
+.history-filter:active{
+  transform:scale(.97);
+}
+.history-filter.active{
+  background:linear-gradient(135deg,#2563eb,#6d28d9);
+  color:#fff;
+  border-color:transparent;
+  box-shadow:0 8px 18px rgba(79,70,229,.18);
+}
+.history-tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:9px;
+}
+.quality-badge{
+  display:inline-flex;
+  align-items:center;
+  border-radius:999px;
+  padding:4px 8px;
+  font-size:.7rem;
+  font-weight:900;
+  background:#e2e8f0;
+  color:#334155;
+}
+.quality-badge.excellent{
+  background:#dcfce7;
+  color:#166534;
+}
+.quality-badge.good{
+  background:#fef3c7;
+  color:#92400e;
+}
+.quality-badge.low{
+  background:#fee2e2;
+  color:#991b1b;
+}
+.history-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:8px;
+}
+.history-delete{
+  border:1px solid #fecaca;
+  border-radius:9px;
+  background:#fff1f2;
+  color:#b91c1c;
+  padding:7px 10px;
+  font-size:.75rem;
+  font-weight:900;
+}
+.history-delete:hover{
+  background:#fee2e2;
+}
 @media(max-width:560px){
-  .sidebar{
-    max-height:94dvh;
-    padding:14px 12px calc(16px + env(safe-area-inset-bottom));
-  }
+  .history-title{align-items:stretch;flex-direction:column}
+  .history-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .history-filter{width:100%;padding:9px 8px;font-size:.72rem}
+  .history-tags{gap:6px}
+  .quality-badge{font-size:.66rem}
+  .history-actions{justify-content:stretch}.history-delete{width:100%}
+}
 
-  .brand-block{
-    grid-template-columns:46px minmax(0,1fr) auto;
-    padding-right:44px;
-  }
 
-  .project-brand-image{
-    width:46px;
-    height:46px;
-  }
-
-  .brand-block strong{
-    font-size:1.18rem;
-  }
-
-  .sidebar-nav{
+/* Revisão 5 — destaque automático para aposta premiada e valor */
+.history-item.awarded{
+  border-color:#86efac;
+  background:linear-gradient(180deg,#ffffff,#f0fdf4);
+  box-shadow:0 14px 34px rgba(22,163,74,.1);
+}
+.status-badge.prize,
+.prize-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  border-radius:999px;
+  padding:5px 9px;
+  background:#dcfce7;
+  color:#166534;
+  font-size:.72rem;
+  font-weight:900;
+}
+.prize-note{
+  margin:8px 0 0;
+  color:#166534;
+  font-size:.78rem;
+  font-weight:800;
+}
+.conference-row.awarded{
+  grid-template-columns:auto auto 1fr minmax(150px,auto);
+  border-color:#86efac;
+  background:linear-gradient(135deg,#ffffff,#f0fdf4);
+}
+.conference-prize{
+  display:grid;
+  gap:2px;
+  justify-items:end;
+  color:#166534;
+  text-align:right;
+}
+.conference-prize strong{
+  font-size:.82rem;
+}
+.conference-prize span{
+  color:#166534;
+  font-size:1rem;
+  font-weight:900;
+}
+.conference-prize small,
+.conference-no-prize{
+  color:var(--muted);
+  font-size:.72rem;
+  font-weight:800;
+}
+@media(max-width:720px){
+  .conference-row.awarded{
     grid-template-columns:1fr;
-    gap:6px;
   }
-
-  .sidebar-nav a{
-    min-height:46px;
-    padding:10px 12px;
-  }
-
-  .menu-toggle{
-    min-width:108px;
-    font-size:.8rem;
+  .conference-prize{
+    justify-items:start;
+    text-align:left;
   }
 }

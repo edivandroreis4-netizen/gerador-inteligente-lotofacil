@@ -9,7 +9,7 @@ export function salvarHistorico(historico) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(historico));
 }
 
-export function adicionarJogo(jogo, concurso = "", valorApostado = 0) {
+export function adicionarJogo(jogo, concurso = "", valorApostado = 0, qualidade = null) {
   const historico = buscarHistorico();
   const novoRegistro = {
     id: crypto.randomUUID(),
@@ -17,6 +17,7 @@ export function adicionarJogo(jogo, concurso = "", valorApostado = 0) {
     concurso: concurso || null,
     status: "Não apurado",
     jogo,
+    qualidade,
     valorApostado: Number(valorApostado) || 0,
     premioRecebido: 0,
     acertos: null,
@@ -28,22 +29,6 @@ export function adicionarJogo(jogo, concurso = "", valorApostado = 0) {
   return novoRegistro;
 }
 
-export function atualizarJogoPorId(id, dadosAtualizados) {
-  const historico = buscarHistorico();
-  const indice = historico.findIndex((item) => item.id === id);
-  if (indice < 0) return null;
-
-  historico[indice] = {
-    ...historico[indice],
-    ...dadosAtualizados,
-    id: historico[indice].id,
-    dataAtualizacao: new Date().toISOString()
-  };
-
-  salvarHistorico(historico);
-  return historico[indice];
-}
-
 export function atualizarUltimoJogo(dadosAtualizados) {
   const historico = buscarHistorico();
   if (!historico.length) return [];
@@ -51,6 +36,13 @@ export function atualizarUltimoJogo(dadosAtualizados) {
   historico[0] = { ...historico[0], ...dadosAtualizados };
   salvarHistorico(historico);
   return historico;
+}
+
+export function removerJogo(id) {
+  const historico = buscarHistorico();
+  const atualizado = historico.filter((item) => item.id !== id);
+  salvarHistorico(atualizado);
+  return atualizado;
 }
 
 export function limparHistorico() {
