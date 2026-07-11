@@ -150,6 +150,13 @@ async function lerJsonResposta(resposta, nomeFonte) {
   }
 }
 
+function deveConsultarApiLocal() {
+  if (typeof window === "undefined") return true;
+  const host = window.location.hostname;
+  const ambienteLocal = window.location.protocol === "file:" || ["localhost", "127.0.0.1", "::1"].includes(host);
+  return !ambienteLocal;
+}
+
 async function consultarApiLocal(concurso = "") {
   const parametro = concurso ? `?concurso=${encodeURIComponent(concurso)}` : "";
   const resposta = await fetch(`/api/lotofacil${parametro}`, {
@@ -194,7 +201,11 @@ function erroFinal(falhas) {
 export async function buscarResultadoLotofacil(concurso = "") {
   const falhas = [];
 
-  for (const consulta of [consultarApiLocal, consultarApiPublica]) {
+  const consultas = deveConsultarApiLocal()
+    ? [consultarApiLocal, consultarApiPublica]
+    : [consultarApiPublica];
+
+  for (const consulta of consultas) {
     try {
       const resultado = await consulta(concurso);
       if (resultado.tipo === "resultado_oficial") salvarResultadoEmCache(resultado);

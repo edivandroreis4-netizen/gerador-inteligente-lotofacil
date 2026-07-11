@@ -28,6 +28,7 @@ let resultadoSelecionado = [];
 let eventoInstalacaoPendente = null;
 let ultimoResultadoCarregado = null;
 let filtroHistorico = "todos";
+let indiceApostaCaixa = 0;
 
 const $ = (id) => document.getElementById(id);
 const elementos = {
@@ -45,7 +46,11 @@ const elementos = {
   atrasadosDestaque: $("atrasados-destaque"), rankingAtrasos: $("ranking-atrasos"), fonteAtrasos: $("fonte-atrasos"), avisoBaseDemo: $("aviso-base-demo"),
   topConcurso: $("top-concurso"), topData: $("top-data"), ultimoConcursoNumero: $("ultimo-concurso-numero"), ultimoConcursoData: $("ultimo-concurso-data"),
   ultimoResultadoBolas: $("ultimo-resultado-bolas"), ultimoConcursoStatus: $("ultimo-concurso-status"), proximoConcursoNumero: $("proximo-concurso-numero"),
-  premioEstimado: $("premio-estimado"), proximoConcursoData: $("proximo-concurso-data"), btnLimparResultado: $("btn-limpar-resultado")
+  premioEstimado: $("premio-estimado"), proximoConcursoData: $("proximo-concurso-data"), btnLimparResultado: $("btn-limpar-resultado"),
+  apostasCaixa: $("apostas-caixa"), caixaEmpty: $("caixa-empty"), caixaWorkspace: $("caixa-workspace"), caixaStatusSummary: $("caixa-status-summary"),
+  caixaListaJogos: $("caixa-lista-jogos"), caixaSeletorJogo: $("caixa-seletor-jogo"), caixaJogoTitulo: $("caixa-jogo-titulo"), caixaJogoQualidade: $("caixa-jogo-qualidade"),
+  caixaNumerosTexto: $("caixa-numeros-texto"), caixaGrade: $("caixa-grade"), btnCaixaAnterior: $("btn-caixa-anterior"), btnCaixaProximo: $("btn-caixa-proximo"),
+  btnCaixaCopiarNumeros: $("btn-caixa-copiar-numeros"), caixaMaisAcoes: $("caixa-mais-acoes"), btnCaixaProximoPendente: $("btn-caixa-proximo-pendente"), btnCaixaMarcar: $("btn-caixa-marcar"), btnCaixaTelaCheia: $("btn-caixa-tela-cheia")
 };
 
 function converterMoedaParaNumero(valor) {
@@ -109,6 +114,172 @@ function criarBolas(numeros) {
   if (!numeros?.length) return "";
   return numeros.map((numero) => `<span class="ball">${String(numero).padStart(2, "0")}</span>`).join("");
 }
+
+function formatarNumerosCaixa(numeros = []) {
+  return [...numeros].sort((a, b) => a - b).map((numero) => String(numero).padStart(2, "0")).join(" ");
+}
+
+function obterJogosParaCaixa() {
+  return buscarHistorico()
+    .filter((item) => Array.isArray(item.jogo) && item.jogo.length === 15)
+    .slice()
+    .reverse();
+}
+
+function criarGradeCaixa(numeros = []) {
+  return Array.from({ length: 25 }, (_, indice) => {
+    const numero = indice + 1;
+    const selecionado = numeros.includes(numero);
+    return `<span class="caixa-grid-number${selecionado ? " selected" : ""}" aria-label="Número ${String(numero).padStart(2, "0")}${selecionado ? " selecionado" : ""}">${String(numero).padStart(2, "0")}</span>`;
+  }).join("");
+}
+
+function obterJogoCaixaAtual() {
+  const jogos = obterJogosParaCaixa();
+  if (!jogos.length) return { jogos, jogo: null, indice: 0 };
+  if (indiceApostaCaixa < 0) indiceApostaCaixa = 0;
+  if (indiceApostaCaixa >= jogos.length) indiceApostaCaixa = jogos.length - 1;
+  return { jogos, jogo: jogos[indiceApostaCaixa], indice: indiceApostaCaixa };
+}
+
+function renderizarApostasCaixa() {
+  const { jogos, jogo, indice } = obterJogoCaixaAtual();
+  const totalMarcados = jogos.filter((item) => item.marcadoCaixa === true).length;
+
+  elementos.caixaStatusSummary.textContent = `${totalMarcados} de ${jogos.length} jogos marcados`;
+
+  if (!jogos.length || !jogo) {
+    elementos.caixaEmpty.hidden = false;
+    elementos.caixaWorkspace.hidden = true;
+    elementos.caixaListaJogos.innerHTML = "";
+    elementos.caixaSeletorJogo.innerHTML = '<option value="">Nenhum jogo salvo</option>';
+    elementos.caixaSeletorJogo.disabled = true;
+    elementos.caixaGrade.innerHTML = "";
+    elementos.caixaNumerosTexto.textContent = "--";
+    return;
+  }
+
+  elementos.caixaEmpty.hidden = true;
+  elementos.caixaWorkspace.hidden = false;
+
+  elementos.caixaListaJogos.innerHTML = jogos.map((item, posicao) => {
+    const qualidade = item.qualidade || avaliarQualidadeJogo(item.jogo || []);
+    const ativo = posicao === indice;
+    const marcado = item.marcadoCaixa === true;
+
+    return `<button class="caixa-game-button${ativo ? " active" : ""}${marcado ? " done" : ""}" type="button" data-caixa-index="${posicao}" aria-pressed="${ativo}">
+      <span class="caixa-game-line"><strong>Jogo ${posicao + 1}</strong><span>${marcado ? "Marcado" : "Pendente"}</span></span>
+      <small>Qualidade: ${qualidade.pontos}/100 • ${qualidade.classificacao}</small>
+      <span class="caixa-game-numbers">${formatarNumerosCaixa(item.jogo)}</span>
+    </button>`;
+  }).join("");
+
+  elementos.caixaSeletorJogo.disabled = false;
+  elementos.caixaSeletorJogo.innerHTML = jogos.map((item, posicao) => {
+    const status = item.marcadoCaixa === true ? "Marcado" : "Pendente";
+    return `<option value="${posicao}">Jogo ${posicao + 1} de ${jogos.length} — ${status}</option>`;
+  }).join("");
+  elementos.caixaSeletorJogo.value = String(indice);
+
+  const qualidadeAtual = jogo.qualidade || avaliarQualidadeJogo(jogo.jogo || []);
+  elementos.caixaJogoTitulo.textContent = `Jogo ${indice + 1} de ${jogos.length}`;
+  elementos.caixaJogoQualidade.textContent = `Qualidade: ${qualidadeAtual.pontos}/100 • ${qualidadeAtual.classificacao}`;
+  elementos.caixaNumerosTexto.textContent = formatarNumerosCaixa(jogo.jogo);
+  elementos.caixaGrade.innerHTML = criarGradeCaixa(jogo.jogo);
+  elementos.btnCaixaAnterior.disabled = indice === 0;
+  elementos.btnCaixaProximo.disabled = indice === jogos.length - 1;
+  elementos.btnCaixaProximoPendente.disabled = totalMarcados === jogos.length;
+  elementos.btnCaixaMarcar.textContent = jogo.marcadoCaixa === true ? "Desmarcar na CAIXA" : "Marcar como feito na CAIXA";
+  elementos.btnCaixaTelaCheia.textContent = elementos.apostasCaixa.classList.contains("caixa-fullscreen") ? "Sair da tela cheia" : "Tela cheia";
+}
+
+async function copiarTexto(texto) {
+  if (!texto.trim()) return false;
+
+  try {
+    if (navigator.clipboard?.writeText && window.isSecureContext) {
+      await navigator.clipboard.writeText(texto);
+      return true;
+    }
+  } catch (erro) {
+    console.warn("Clipboard API indisponível, usando fallback.", erro);
+  }
+
+  const campoTemporario = document.createElement("textarea");
+  campoTemporario.value = texto;
+  campoTemporario.setAttribute("readonly", "");
+  campoTemporario.style.position = "fixed";
+  campoTemporario.style.opacity = "0";
+  document.body.appendChild(campoTemporario);
+  campoTemporario.select();
+  const copiado = document.execCommand("copy");
+  document.body.removeChild(campoTemporario);
+  return copiado;
+}
+
+async function copiarNumerosCaixaAtual() {
+  const { jogo, indice } = obterJogoCaixaAtual();
+  if (!jogo) return alertaErro("Nenhum jogo salvo", "Salve pelo menos um jogo antes de copiar.");
+
+  const texto = formatarNumerosCaixa(jogo.jogo);
+  const copiado = await copiarTexto(texto);
+
+  if (elementos.caixaMaisAcoes) {
+    elementos.caixaMaisAcoes.open = false;
+  }
+
+  if (copiado) {
+    alertaSucesso("Números copiados", `As dezenas do jogo ${indice + 1} foram copiadas em formato de texto.`);
+  } else {
+    alertaErro("Não foi possível copiar", "Copie manualmente os números exibidos acima da grade.");
+  }
+}
+
+function alternarMarcadoCaixaAtual() {
+  const { jogo } = obterJogoCaixaAtual();
+  if (!jogo?.id) return;
+
+  const historico = buscarHistorico();
+  const atualizado = historico.map((item) => item.id === jogo.id
+    ? { ...item, marcadoCaixa: item.marcadoCaixa !== true, marcadoCaixaEm: item.marcadoCaixa === true ? null : new Date().toISOString() }
+    : item
+  );
+
+  salvarHistorico(atualizado);
+  renderizarHistorico();
+  atualizarDashboard();
+}
+
+function navegarApostaCaixa(direcao) {
+  const jogos = obterJogosParaCaixa();
+  if (!jogos.length) return;
+  indiceApostaCaixa = Math.min(Math.max(indiceApostaCaixa + direcao, 0), jogos.length - 1);
+  renderizarApostasCaixa();
+}
+
+function irParaProximaApostaPendente() {
+  const jogos = obterJogosParaCaixa();
+  if (!jogos.length) return alertaErro("Nenhum jogo salvo", "Salve pelo menos um jogo antes de continuar.");
+
+  for (let deslocamento = 1; deslocamento <= jogos.length; deslocamento += 1) {
+    const indiceCandidato = (indiceApostaCaixa + deslocamento) % jogos.length;
+    if (jogos[indiceCandidato].marcadoCaixa !== true) {
+      indiceApostaCaixa = indiceCandidato;
+      renderizarApostasCaixa();
+      elementos.caixaJogoTitulo.focus?.();
+      return;
+    }
+  }
+
+  alertaSucesso("Todos os jogos estão marcados", "Não há apostas pendentes para transferir à CAIXA.");
+}
+
+function alternarTelaCheiaCaixa() {
+  const ativo = elementos.apostasCaixa.classList.toggle("caixa-fullscreen");
+  document.body.classList.toggle("caixa-fullscreen-open", ativo);
+  renderizarApostasCaixa();
+}
+
 
 function obterConcursoDigitado() { return elementos.numeroConcurso.value.trim(); }
 
@@ -239,6 +410,7 @@ function renderizarHistorico() {
         <span class="status-badge${status === "Conferido" ? " checked" : ""}${premiado ? " prize" : ""}">${status}</span>
         ${premiado ? `<span class="prize-badge">🏆 ${premio > 0 ? formatarMoeda(premio) : "Prêmio a confirmar"}</span>` : ""}
         <span class="quality-badge ${classeQualidade}">Qualidade: ${qualidade.pontos}/100 • ${qualidade.classificacao}</span>
+        ${item.marcadoCaixa ? `<span class="status-badge checked">Marcado na CAIXA</span>` : ""}
       </div>
       <div class="history-balls">${criarBolas(item.jogo)}</div>
       <div class="history-financial"><span>Aposta: <strong>${formatarMoeda(valor)}</strong></span><span>Prêmio: <strong>${formatarMoeda(premio)}</strong></span><span class="${saldo > 0 ? "positive" : saldo < 0 ? "negative" : "neutral"}">Resultado: <strong>${saldo > 0 ? "+" : ""}${formatarMoeda(saldo)}</strong></span></div>
@@ -300,6 +472,7 @@ function atualizarDashboard() {
   renderizarGraficoAcertos(contarAcertosPorFaixa(historico));
   renderizarGraficoFinanceiro(historico);
   renderizarNumerosAtrasados();
+  renderizarApostasCaixa();
 }
 
 function iniciarGerador() {
@@ -514,6 +687,63 @@ function configurarMenu() {
   window.addEventListener("resize", () => { if (window.innerWidth > 900) definirEstadoMenu(false); });
 }
 
+function configurarNavegacaoAtiva() {
+  const links = [...document.querySelectorAll('.sidebar-nav a[href^="#"]')];
+  const secoes = links
+    .map((link) => ({ link, id: link.getAttribute("href").slice(1), elemento: document.querySelector(link.getAttribute("href")) }))
+    .filter((item) => item.elemento);
+
+  let idAtivo = "dashboard";
+  let atualizacaoPendente = false;
+
+  const ativarLink = (id) => {
+    idAtivo = id;
+    secoes.forEach(({ link, id: linkId }) => {
+      const ativo = linkId === id;
+      link.classList.toggle("active", ativo);
+      if (ativo) link.setAttribute("aria-current", "page");
+      else link.removeAttribute("aria-current");
+    });
+  };
+
+  const atualizarPeloScroll = () => {
+    atualizacaoPendente = false;
+    const alturaTopo = document.querySelector(".topbar")?.offsetHeight || 0;
+    const linhaLeitura = window.scrollY + alturaTopo + 36;
+    const posicoes = secoes
+      .map((item) => ({ ...item, topo: item.elemento.getBoundingClientRect().top + window.scrollY }))
+      .sort((a, b) => a.topo - b.topo);
+    const alcançadas = posicoes.filter((item) => item.topo <= linhaLeitura);
+    if (!alcançadas.length) return ativarLink("dashboard");
+
+    const topoAtual = alcançadas[alcançadas.length - 1].topo;
+    const mesmoNivel = alcançadas.filter((item) => Math.abs(item.topo - topoAtual) <= 12);
+    const manterAtual = mesmoNivel.find((item) => item.id === idAtivo);
+    ativarLink((manterAtual || mesmoNivel[0] || alcançadas[alcançadas.length - 1]).id);
+  };
+
+  const solicitarAtualizacao = () => {
+    if (atualizacaoPendente) return;
+    atualizacaoPendente = true;
+    window.requestAnimationFrame(atualizarPeloScroll);
+  };
+
+  links.forEach((link) => {
+    link.addEventListener("click", () => ativarLink(link.getAttribute("href").slice(1)));
+  });
+
+  window.addEventListener("scroll", solicitarAtualizacao, { passive: true });
+  window.addEventListener("resize", solicitarAtualizacao);
+  window.addEventListener("hashchange", () => {
+    const id = window.location.hash.slice(1);
+    if (secoes.some((item) => item.id === id)) ativarLink(id);
+  });
+
+  const hashInicial = window.location.hash.slice(1);
+  ativarLink(secoes.some((item) => item.id === hashInicial) ? hashInicial : "dashboard");
+  solicitarAtualizacao();
+}
+
 function estaEmModoAplicativo() { return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true; }
 function marcarAppInstalado() { elementos.btnInstalar.hidden = true; elementos.appInstalado.hidden = false; }
 function configurarPWA() {
@@ -560,6 +790,34 @@ function configurarFiltrosHistorico() {
   });
 }
 
+
+
+function configurarApostasCaixa() {
+  elementos.caixaListaJogos.addEventListener("click", (event) => {
+    const botao = event.target.closest("[data-caixa-index]");
+    if (!botao) return;
+    indiceApostaCaixa = Number(botao.dataset.caixaIndex) || 0;
+    renderizarApostasCaixa();
+  });
+
+  elementos.caixaSeletorJogo.addEventListener("change", () => {
+    indiceApostaCaixa = Number(elementos.caixaSeletorJogo.value) || 0;
+    renderizarApostasCaixa();
+  });
+  elementos.btnCaixaAnterior.addEventListener("click", () => navegarApostaCaixa(-1));
+  elementos.btnCaixaProximo.addEventListener("click", () => navegarApostaCaixa(1));
+  elementos.btnCaixaCopiarNumeros.addEventListener("click", copiarNumerosCaixaAtual);
+  elementos.btnCaixaProximoPendente.addEventListener("click", irParaProximaApostaPendente);
+  elementos.btnCaixaMarcar.addEventListener("click", alternarMarcadoCaixaAtual);
+  elementos.btnCaixaTelaCheia.addEventListener("click", alternarTelaCheiaCaixa);
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && elementos.apostasCaixa.classList.contains("caixa-fullscreen")) {
+      alternarTelaCheiaCaixa();
+    }
+  });
+}
+
 function iniciarApp() {
   elementos.btnGerar.addEventListener("click", iniciarGerador);
   elementos.btnSalvar.addEventListener("click", salvarJogoAtual);
@@ -570,7 +828,7 @@ function iniciarApp() {
   elementos.listaHistorico.addEventListener("click", (event) => { const botao = event.target.closest("[data-delete-game]"); if (botao) excluirJogoHistorico(botao.dataset.deleteGame); });
   elementos.seletorNumeros.addEventListener("click", (event) => { const botao = event.target.closest("[data-number]"); if (botao) alternarNumeroJogo(Number(botao.dataset.number)); });
   elementos.seletorResultado.addEventListener("click", (event) => { const botao = event.target.closest("[data-result-number]"); if (botao) alternarNumeroResultado(Number(botao.dataset.resultNumber)); });
-  configurarMenu(); configurarTabsConcurso(); configurarFiltrosHistorico(); configurarPWA();
+  configurarMenu(); configurarNavegacaoAtiva(); configurarTabsConcurso(); configurarFiltrosHistorico(); configurarApostasCaixa(); configurarPWA();
   renderizarJogo(); renderizarResultadoManual(); renderizarQualidade(); renderizarHistorico(); atualizarDashboard();
 }
 

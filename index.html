@@ -24,11 +24,12 @@
       <div class="brand-block">
         <div class="brand-mark" aria-hidden="true">✦</div>
         <div><span>Gerador Inteligente</span><strong>Lotofácil</strong></div>
-        <span class="version">v2.3.3 r4</span>
+        <span class="version">v2.3.3 r7</span>
       </div>
       <nav class="sidebar-nav">
         <a class="active" href="#dashboard">⌂ <span>Dashboard</span></a>
         <a href="#gerador">◈ <span>Gerador de jogos</span></a>
+        <a href="#apostas-caixa">▦ <span>Apostas para CAIXA</span></a>
         <a href="#conferidor">✓ <span>Conferidor</span></a>
         <a href="#atrasados">◷ <span>Números em atraso</span></a>
         <a href="#financeiro">◫ <span>Controle financeiro</span></a>
@@ -127,6 +128,75 @@
             <details><summary>Ver ranking completo (01 a 25)</summary><div class="delayed-grid" id="ranking-atrasos"></div></details>
             <p class="helper">Atraso não aumenta a chance de sorteio. Cada concurso é independente.</p>
           </article>
+        </section>
+
+        <section class="panel caixa-panel" id="apostas-caixa" aria-labelledby="titulo-apostas-caixa">
+          <div class="panel-title caixa-title">
+            <div>
+              <span>Revisão 8</span>
+              <h2 id="titulo-apostas-caixa">Apostas para CAIXA</h2>
+            </div>
+            <strong class="caixa-counter" id="caixa-status-summary">0 de 0 jogos marcados</strong>
+          </div>
+
+          <div class="caixa-empty" id="caixa-empty">
+            <strong>Nenhuma aposta salva para enviar.</strong>
+            <p>Gere e salve seus jogos. Depois volte aqui para visualizar cada aposta na grade 01 a 25 e marcar no app oficial da CAIXA.</p>
+          </div>
+
+          <div class="caixa-workspace" id="caixa-workspace" hidden>
+            <aside class="caixa-games-list" aria-label="Lista de jogos para marcar na CAIXA">
+              <div class="caixa-games-head">
+                <strong>Jogos salvos</strong>
+                <small>Toque em um jogo para visualizar.</small>
+              </div>
+              <div id="caixa-lista-jogos"></div>
+            </aside>
+
+            <article class="caixa-viewer" aria-live="polite">
+              <div class="caixa-mobile-selector">
+                <label for="caixa-seletor-jogo">Jogo atual</label>
+                <select id="caixa-seletor-jogo" aria-label="Selecionar jogo para marcar na CAIXA"></select>
+              </div>
+
+              <div class="caixa-viewer-head">
+                <div>
+                  <span id="caixa-jogo-titulo">Jogo 1</span>
+                  <strong id="caixa-jogo-qualidade">Qualidade: --/100</strong>
+                </div>
+                <button class="btn ghost" id="btn-caixa-tela-cheia" type="button">Tela cheia</button>
+              </div>
+
+              <div class="caixa-number-line" id="caixa-numeros-texto">--</div>
+              <div class="caixa-grid" id="caixa-grade" aria-label="Grade visual 01 a 25"></div>
+
+              <div class="caixa-action-dock" aria-label="Controles do jogo atual">
+                <div class="caixa-actions-main">
+                  <button class="btn ghost" id="btn-caixa-anterior" type="button">Anterior</button>
+                  <button class="btn ghost" id="btn-caixa-proximo" type="button">Próximo</button>
+                </div>
+
+                <div class="caixa-actions-status">
+                  <button class="btn blue" id="btn-caixa-proximo-pendente" type="button">Próximo pendente</button>
+                  <button class="btn green" id="btn-caixa-marcar" type="button">Marcar como feito na CAIXA</button>
+                </div>
+              </div>
+
+              <div class="caixa-actions-secondary">
+                <details class="caixa-more-actions" id="caixa-mais-acoes">
+                  <summary>Mais ações</summary>
+                  <div class="caixa-more-actions-menu">
+                    <button class="btn ghost" id="btn-caixa-copiar-numeros" type="button">Copiar números</button>
+                    <small>Use para compartilhar ou guardar o jogo em formato de texto.</small>
+                  </div>
+                </details>
+                <a class="btn outline" id="btn-abrir-caixa" href="https://www.loteriasonline.caixa.gov.br/" target="_blank" rel="noopener noreferrer">Abrir site oficial da CAIXA</a>
+              </div>
+
+              <p class="helper caixa-helper">Use a grade como guia visual para marcar as mesmas dezenas no app oficial Loterias CAIXA.</p>
+              <p class="caixa-disclaimer" role="note"><strong>Aviso:</strong> este aplicativo é independente e não possui vínculo com a CAIXA. Confira as dezenas antes de confirmar a aposta. A avaliação de qualidade é apenas estatística e não garante premiação.</p>
+            </article>
+          </div>
         </section>
 
         <section class="analytics-grid" id="financeiro">

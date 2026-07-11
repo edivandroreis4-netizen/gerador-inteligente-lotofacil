@@ -1,11 +1,11 @@
 {
   "name": "Gerador Inteligente Lotofácil",
   "short_name": "Lotofácil",
-  "description": "PWA para gerar jogos, conferir todos os jogos salvos, usar API, cache e modo manual da Lotofácil.",
+  "description": "PWA para gerar jogos, preparar apostas para CAIXA, conferir todos os jogos salvos, usar API, cache e modo manual da Lotofácil.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "background_color": "#08111f",
   "theme_color": "#0f172a",
   "lang": "pt-BR",
